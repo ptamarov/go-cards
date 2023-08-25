@@ -1,0 +1,6 @@
+*.pdf
+*.txt
+myapp
+todos.md
+.vscode
+*.DS_Store

@@ -1,0 +1,95 @@
+{{ template "base" . }}
+{{ define "content" }}
+   <div class="container p-3">
+        <div class="row">
+            <div class="col-md-3"></div>
+            <div class="col-md-6">
+                <div class="card" style="--bs-card-spacer-x: 2rem; --bs-card-spacer-y: 2rem">
+                    <div class="card-body" style="color: #067889"> {{ index .CardData "prompt"}} </div>
+                    <div class="card-footer">
+                        <div class="accordion accordion-flush" id="translation">
+                            <div class="accordion-item">
+                                <h2 class="accordion-header" id="word_translation">
+                                    <button class="accordion-button collapsed sansSerif" 
+                                            type="button" 
+                                            data-bs-toggle="collapse" 
+                                            data-bs-target="#translationFlush" 
+                                            aria-expanded="false" 
+                                            aria-controls="translationFlush">
+                                        {{ index .CardData "hint"}} ({{ index .CardData "grammar"}})
+                                    </button>
+                                </h2>
+                                    <div id="translationFlush" 
+                                         class="accordion-collapse collapse sansSmall" 
+                                         aria-labelledby="translation" 
+                                         data-bs-parent="#translation">
+                                        <div class="accordion-body">
+                                           {{ index .CardData "translation"}} 
+                                        </div>
+                                    </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+        <div class="container p-3">
+            <div class="row">
+                <div class="col-md-3"></div>
+                <div class="col-md-6">
+                    <div class ="card" >
+                        <div class="card-body" style="--bs-card-spacer-x: 0.25rem">
+                            <form method="post" 
+                                  action="/guess" 
+                                  autocomplete="off" 
+                                  class="needs-validation" 
+                                  novalidate>
+                            <input type="hidden" 
+                                   name="csrf_token" 
+                                   value="{{ .CSRFToken }}">
+                                <div class="container">
+                                    <div class="row">
+                                        <div class="col-md-8 text-start">
+                                            <input type="text" 
+                                                   class="form-control" 
+                                                   name="user_guess" 
+                                                   placeholder="{{ .Answer }}" 
+                                                   autofocus>
+                                        </div>
+                                        <div class="col-md-4 text-end">
+                                            <input type="submit" 
+                                                   class="btn btn-dark" 
+                                                   value="Learn word">
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row"></div>
+                            </form>
+                        </div>
+                        <div class="card-footer">
+                            <div class="row justify-content-center">
+                                <div class="col-sm-1 sansSmall text-end p-0" style="width: 8%">
+                                {{ .Count }}
+                                </div>
+                                <div class="col-md-10">
+                                    <div class="progress">
+                                        <div class="progress-bar bg-success w-{{ .Progress }}" 
+                                            role="progressbar"  
+                                            aria-valuenow="{{ .Progress }}"
+                                            aria-valuemin="0" 
+                                            aria-valuemax="100"
+                                            style="width:{{ .Progress }}%">
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-sm-1 sansSmall text-start p-0" style="width: 8%">
+                                50
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+{{ end }}
