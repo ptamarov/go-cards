@@ -9,7 +9,7 @@ import (
 	"github.com/ptamarov/go-cards/pkg/handlers"
 )
 
-func Routes(app *config.AppConfig) http.Handler {
+func routes(app *config.AppConfig) http.Handler {
 	mux := chi.NewRouter()
 	mux.Use(middleware.Recoverer)
 	mux.Use(NoSurf)

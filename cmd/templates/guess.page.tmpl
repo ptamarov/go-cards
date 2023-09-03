@@ -5,7 +5,7 @@
             <div class="col-md-3"></div>
             <div class="col-md-6">
                 <div class="card" style="--bs-card-spacer-x: 2rem; --bs-card-spacer-y: 2rem">
-                    <div class="card-body" style="color: #067889"> {{ index .CardData "prompt"}} </div>
+                    <div class="card-body" style="color: #067889"> {{ .CardData.Prompt }} </div>
                     <div class="card-footer">
                         <div class="accordion accordion-flush" id="translation">
                             <div class="accordion-item">
@@ -16,7 +16,7 @@
                                             data-bs-target="#translationFlush" 
                                             aria-expanded="false" 
                                             aria-controls="translationFlush">
-                                        {{ index .CardData "hint"}} ({{ index .CardData "grammar"}})
+                                        {{ .CardData.Hint}} ({{ .CardData.Grammar }})
                                     </button>
                                 </h2>
                                     <div id="translationFlush" 
@@ -24,7 +24,7 @@
                                          aria-labelledby="translation" 
                                          data-bs-parent="#translation">
                                         <div class="accordion-body">
-                                           {{ index .CardData "translation"}} 
+                                           {{ .CardData.PromptTranslation}} 
                                         </div>
                                     </div>
                             </div>

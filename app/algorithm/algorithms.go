@@ -7,43 +7,49 @@ import (
 	"github.com/ptamarov/go-cards/app/card"
 	"github.com/ptamarov/go-cards/app/deck"
 	"github.com/ptamarov/go-cards/app/history"
-	"github.com/ptamarov/go-cards/database"
+	"github.com/ptamarov/go-cards/pkg/repository"
 )
 
 // NextCardAlgorithm is an interface that can give the user a next card to study.
 type NextCardAlgorithm interface {
 	// GetNextCard must always pop a card from deck to avoid duplication.
-	GetNextCard(GetNextCardInput) card.MemoryCard
+	GetNextCard(getNextCardInput) card.MemoryCard
 }
 
-type GetNextCardInput struct {
-	UserID   uuid.UUID
-	Deck     *deck.MemoryCardDeck
-	Judge    GuessJudge
-	Database database.Database
+type getNextCardInput struct {
+	UserID uuid.UUID
+	Deck   *deck.MemoryCardDeck
+	Judge  GuessJudge
+	DBRepo repository.DatabaseRepository
 }
 
 type NaiveAlgorithm struct {
 }
 
-func (na NaiveAlgorithm) GetNextCard(input GetNextCardInput) card.MemoryCard {
-	return input.Deck.PopLast()
+func (na NaiveAlgorithm) GetNextCard(input getNextCardInput) (card.MemoryCard, error) {
+	memoryCard, err := input.DBRepo.GetRandomCardInDatabase()
+	if err != nil {
+		return card.MemoryCard{}, err
+	} else {
+		return memoryCard, nil
+	}
+
 }
 
 type SM2Algorithm struct {
 }
 
-func (sm2 SM2Algorithm) GetNextCard(in GetNextCardInput) card.MemoryCard {
+func (sm2 SM2Algorithm) GetNextCard(in getNextCardInput) card.MemoryCard {
 	var topPriority card.MemoryCard
 	smallestInterval := math.Inf(-1)
 
-	userHistory := (in.Database).GetUserHistoryForDeck(in.UserID, in.Deck.DeckID).HistoryForDeck
+	userHistory := (in.DBRepo).GetUserHistoryForDeck(in.UserID, in.Deck.DeckID).HistoryForDeck
 
 	for _, card := range in.Deck.Cards {
 		var cardHistory []history.Guess // store the history of guesses for a given card
 
 		for _, action := range userHistory {
-			if action.MemoryCardID == card.CardID {
+			if action.MemoryCardID == card.ID {
 				cardHistory = append(cardHistory, action.Guess)
 			}
 		}

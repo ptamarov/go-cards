@@ -14,7 +14,7 @@ import (
 
 var app *config.AppConfig
 
-func NewTemplates(a *config.AppConfig) { // Set the app variable.
+func NewRenders(a *config.AppConfig) { // Set the app variable.
 	app = a
 }
 

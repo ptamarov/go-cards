@@ -7,6 +7,7 @@ import (
 
 	"github.com/alexedwards/scs/v2"
 	"github.com/google/uuid"
+	"github.com/ptamarov/go-cards/app/card"
 )
 
 type AppConfig struct {
@@ -14,6 +15,7 @@ type AppConfig struct {
 	InProduction    bool
 	TemplateCache   map[string]*template.Template
 	InfoLog         *log.Logger
+	ErrorLog        *log.Logger
 	Session         *scs.SessionManager
 	DataBase        *sql.DB
 	UserID          uuid.UUID
@@ -26,6 +28,6 @@ type UserCache struct {
 	AuthKey        string
 	TargetLanguage string
 	Progress       int
-	CardData       map[string]string
+	CardData       card.MemoryCard
 	Count          int
 }
