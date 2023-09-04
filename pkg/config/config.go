@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"html/template"
 	"log"
+	"time"
 
 	"github.com/alexedwards/scs/v2"
 	"github.com/google/uuid"
@@ -21,12 +22,15 @@ type AppConfig struct {
 	UserID          uuid.UUID
 	UserData        UserCache
 	GetTranslations bool
+	NotFresh        bool
+	Time            time.Time
 }
 
 type UserCache struct {
 	UserName       string
 	AuthKey        string
 	TargetLanguage string
+	LastAnswer     string
 	Progress       int
 	CardData       card.MemoryCard
 	Count          int

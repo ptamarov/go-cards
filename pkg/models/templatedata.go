@@ -12,4 +12,5 @@ type TemplateData struct {
 	CSRFToken string
 	Answer    string
 	Count     int
+	Fresh     bool
 }

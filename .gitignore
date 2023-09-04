@@ -4,3 +4,4 @@ myapp
 todos.md
 .vscode
 *.DS_Store
+*.sql

@@ -15,6 +15,6 @@ type DatabaseRepository interface {
 	GetNumberOfCardsAnsweredForDate(t time.Time) int
 	GetTimesCardAnsweredInDeck(userid, deckid, cardid uuid.UUID) int
 	GetUserHistoryForDeck(userid, deckid uuid.UUID) history.UserHistoryForDeck
-	RecordActionForUserAndDeck(uuid.UUID, uuid.UUID, history.Action)
+	RecordActionForUserAndDeck(history.UserAction) error
 	GetRandomCardInDatabase() (card.MemoryCard, error)
 }

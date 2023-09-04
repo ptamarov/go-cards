@@ -1,6 +1,7 @@
 package dbrepo
 
 import (
+	"context"
 	"database/sql"
 	"log"
 	"time"
@@ -77,6 +78,24 @@ func (m *postgresDBRepo) GetUserHistoryForDeck(userid, deckid uuid.UUID) history
 	return history.UserHistoryForDeck{}
 }
 
-func (m *postgresDBRepo) RecordActionForUserAndDeck(uuid.UUID, uuid.UUID, history.Action) {
+func (m *postgresDBRepo) RecordActionForUserAndDeck(action history.UserAction) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	statement := `INSERT INTO history (user_id, deck_id, card_id, guess, duration, created_at) 
+	VALUES ($1, $2, $3, $4, $5, $6)`
+
+	_, err := m.DB.ExecContext(ctx, statement,
+		action.UserID,
+		action.DeckID,
+		action.CardID,
+		action.Guess,
+		action.Duration,
+		action.Date,
+	)
+	if err != nil {
+		return err
+	}
+	return nil
 
 }

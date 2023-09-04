@@ -46,15 +46,7 @@ func (sm2 SM2Algorithm) GetNextCard(in getNextCardInput) card.MemoryCard {
 	userHistory := (in.DBRepo).GetUserHistoryForDeck(in.UserID, in.Deck.DeckID).HistoryForDeck
 
 	for _, card := range in.Deck.Cards {
-		var cardHistory []history.Guess // store the history of guesses for a given card
-
-		for _, action := range userHistory {
-			if action.MemoryCardID == card.ID {
-				cardHistory = append(cardHistory, action.Guess)
-			}
-		}
-
-		cardInterval := determineCardStatusForSM2(in.Judge, card, cardHistory)
+		cardInterval := determineCardStatusForSM2(in.Judge, card, userHistory)
 		if cardInterval <= int(smallestInterval) {
 			smallestInterval = float64(cardInterval)
 			topPriority = card
@@ -64,11 +56,11 @@ func (sm2 SM2Algorithm) GetNextCard(in getNextCardInput) card.MemoryCard {
 	return topPriority
 }
 
-func computeQualityForSM2(j GuessJudge, card card.MemoryCard, guess history.Guess) int {
-	correctFactor := j.EvaluateGuess(card, guess)
+func computeQualityForSM2(j GuessJudge, card card.MemoryCard, action history.UserAction) int {
+	correctFactor := j.EvaluateUserAction(card, action)
 	var quality int
 
-	if guess.Duration >= 10 {
+	if action.Duration >= 10 {
 		quality = 0
 	} else {
 		quality = int(math.Floor(5 * correctFactor))
@@ -90,7 +82,7 @@ func computeNewIntervalForSM2(newEaseFactor float64, pastInterval int, timesSeen
 
 // Processes a list of guesses corresponding to a card, ouputs the interval
 // value obtained by processing the data according to the SM-2 algorithm."""
-func determineCardStatusForSM2(j GuessJudge, card card.MemoryCard, guesses []history.Guess) int {
+func determineCardStatusForSM2(j GuessJudge, card card.MemoryCard, actions []history.UserAction) int {
 	var interval int
 	var easeFactor float64
 	var timesSeen int
@@ -99,8 +91,8 @@ func determineCardStatusForSM2(j GuessJudge, card card.MemoryCard, guesses []his
 	easeFactor = 2.5
 	timesSeen = 0
 
-	for _, guess := range guesses {
-		quality := computeQualityForSM2(j, card, guess)
+	for _, action := range actions {
+		quality := computeQualityForSM2(j, card, action)
 
 		switch quality {
 		case 0:

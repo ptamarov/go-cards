@@ -10,13 +10,13 @@ import (
 
 // Judges for cards
 type GuessJudge interface {
-	EvaluateGuess(card card.MemoryCard, h history.Guess) float64
+	EvaluateUserAction(card card.MemoryCard, h history.UserAction) float64
 }
 
 type NaiveJudge struct {
 }
 
-func (nj NaiveJudge) EvaluateGuess(card card.MemoryCard, g history.Guess) float64 {
+func (nj NaiveJudge) EvaluateGuess(card card.MemoryCard, g history.UserAction) float64 {
 
 	if strings.EqualFold(card.WordToLearn, g.Guess) {
 		return 1.0
@@ -29,7 +29,7 @@ type LevenshsteinJudge struct {
 	Options levenshtein.Options
 }
 
-func (lj LevenshsteinJudge) EvaluateGuess(card card.MemoryCard, g history.Guess) float64 {
+func (lj LevenshsteinJudge) EvaluateGuess(card card.MemoryCard, g history.UserAction) float64 {
 	wordToLearn := strings.ToLower(card.WordToLearn)
 	guess := strings.ToLower(g.Guess)
 

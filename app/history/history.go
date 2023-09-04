@@ -6,19 +6,17 @@ import (
 	"github.com/google/uuid"
 )
 
-type Guess struct {
+type UserAction struct {
+	UserID   uuid.UUID
+	DeckID   uuid.UUID
+	CardID   uuid.UUID
 	Guess    string
-	Duration float32
-}
-
-type Action struct {
-	MemoryCardID uuid.UUID
-	Guess        Guess
-	Date         time.Time // include 
+	Duration float64
+	Date     time.Time // include
 }
 
 type UserHistoryForDeck struct {
 	UserID         uuid.UUID
 	DeckID         uuid.UUID
-	HistoryForDeck []Action
+	HistoryForDeck []UserAction
 }
