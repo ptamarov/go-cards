@@ -8,15 +8,14 @@ import (
 )
 
 type MemoryCard struct {
-	ID                uuid.UUID `json:"card_id"`
-	Grammar           string    `json:"grammar"` // explains the grammar of the missing word (in context)
-	Hint              string    `json:"hint"`    // a hint indicates what the prompt is missing (marked word)
-	LanguageToLearn   string    `json:"lang_learn"`
-	UserLanguage      string    `json:"lang_user"`
+	ID                uuid.UUID `json:"card_id"`            // unique card id
+	Grammar           string    `json:"grammar"`            // explains the grammar of the missing word (in context)
+	Hint              string    `json:"hint"`               // a hint indicates what the prompt is missing (marked word)
+	LanguageToLearn   string    `json:"lang_learn"`         // the language to learn
+	UserLanguage      string    `json:"lang_user"`          // the language the user uses to learn
 	Prompt            string    `json:"prompt"`             // a prompt must be a sentence with a unique *marked* word to learn
-	WordToLearn       string    `json:"word_to_learn"`      // a hint indicates what the prompt is missing (marked word)
 	PromptTranslation string    `json:"prompt_translation"` // translation of the prompt in the user's language
-	Answer            string    `json:"answer"`             // translation of the prompt in the user's language
+	Answer            string    `json:"answer"`             // the word to learn
 }
 
 func GetWordToLearnFromPrompt(prompt string) (string, error) {

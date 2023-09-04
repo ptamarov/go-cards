@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/ptamarov/go-cards/app/algorithm"
 	"github.com/ptamarov/go-cards/app/history"
 	"github.com/ptamarov/go-cards/pkg/config"
 	"github.com/ptamarov/go-cards/pkg/driver"
@@ -64,11 +65,20 @@ func (m *Repository) GetGuess(w http.ResponseWriter, r *http.Request) {
 	err := m.DB.RecordActionForUserAndDeck(newAction)
 	if err != nil {
 		helpers.ServerError(w, err)
-		m.App.ErrorLog.Println(err)
+		return
 	}
 
 	// check if user guess was right
-	if guess == lastCardData.Answer {
+
+	var judge = algorithm.LevenshsteinJudge{
+		CaseInsensitive:   true,
+		UmlautInsensitive: true,
+	}
+
+	evaluation := judge.EvaluateGuess(lastCardData, newAction)
+	m.App.InfoLog.Printf("evaluation result was %f for guess %s with answer %s\n", evaluation, guess, lastCardData.Answer)
+
+	if evaluation == 1.00 {
 		// if right, get new card and populate template data
 		newCardData, err := m.DB.GetRandomCardInDatabase()
 		if err != nil {
@@ -79,12 +89,12 @@ func (m *Repository) GetGuess(w http.ResponseWriter, r *http.Request) {
 		Repo.App.UserData.LastAnswer = ""
 		Repo.UpdateUserProgress()
 		m.App.InfoLog.Println("NEW_PROMPT:", newCardData.Prompt)
-		http.Redirect(w, r, "/show-card", http.StatusTemporaryRedirect)
+		http.Redirect(w, r, "/learn", http.StatusTemporaryRedirect)
 
 	} else {
 		Repo.App.UserData.CardData = lastCardData
 		Repo.App.UserData.LastAnswer = lastCardData.Answer
-		http.Redirect(w, r, "/show-card", http.StatusTemporaryRedirect)
+		http.Redirect(w, r, "/learn", http.StatusTemporaryRedirect)
 	}
 
 }
@@ -117,11 +127,6 @@ func (m *Repository) ShowCard(w http.ResponseWriter, r *http.Request) {
 
 func (m *Repository) Home(w http.ResponseWriter, r *http.Request) {
 	renders.RenderTemplate(w, r, "home.page.tmpl", &models.TemplateData{})
-}
-
-func (m *Repository) UpdateUserGuess(w http.ResponseWriter, r *http.Request) {
-	td := models.TemplateData{}
-	renders.RenderTemplate(w, r, "home.page.tmpl", &td)
 }
 
 func (m *Repository) UpdateUserProgress() {
