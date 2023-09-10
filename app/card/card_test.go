@@ -29,14 +29,10 @@ func TestGetWordToLearnFromPrompt(t *testing.T) {
 		if err != nil {
 			if !test.err {
 				t.Error("was not expecting an error but got", err)
-			} else {
-				t.Logf("got [%v] as expected", err)
 			}
 		} else {
 			if got != test.want {
 				t.Errorf("was expecting %s but got %s", test.want, got)
-			} else {
-				t.Logf("got [%s] as expected", got)
 			}
 		}
 	}
@@ -60,14 +56,10 @@ func TestGetPromptFromCard(t *testing.T) {
 		if err != nil {
 			if !test.err {
 				t.Error("was not expecting an error but got", err)
-			} else {
-				t.Logf("got [%v] as expected", err)
 			}
 		} else {
 			if got != test.want {
 				t.Errorf("was expecting %s but got %s", test.want, got)
-			} else {
-				t.Logf("got [%s] as expected", got)
 			}
 		}
 	}

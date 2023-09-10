@@ -9,12 +9,16 @@ import (
 )
 
 type DatabaseRepository interface {
-	GetCardPromptFromCardID(id uuid.UUID) string
-	GetCardsWithGuessForDate(t time.Time) []string
-	GetNumberOfCardsAnsweredCorrectlyForDate(t time.Time) int
-	GetNumberOfCardsAnsweredForDate(t time.Time) int
-	GetTimesCardAnsweredInDeck(userid, deckid, cardid uuid.UUID) int
+	// GET ROUTINES
+	GetRedactedPromptFromCardID(id uuid.UUID) (string, error)
+	GetCardByID(cardID uuid.UUID) (card.MemoryCard, error)
+	GetTopCardFromDeck(userID, deckID uuid.UUID) (card.MemoryCard, error)
+	GetNumberOfCardsAnsweredCorrectlyForEpoch(start, end time.Time) (int, error)
+	GetTimesCardAnsweredInDeck(userid, deckid, cardid uuid.UUID) (int, error)
 	GetUserHistoryForDeck(userid, deckid uuid.UUID) history.UserHistoryForDeck
-	RecordActionForUserAndDeck(history.UserAction) error
 	GetRandomCardInDatabase() (card.MemoryCard, error)
+
+	// PUT ROUTINES
+	RecordActionForUserAndDeck(history.UserAction) error
+	UpdateCardSeeNextDate(userID, deckID, cardID uuid.UUID, newDate time.Time) error
 }

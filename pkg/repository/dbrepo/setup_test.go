@@ -1,24 +1,53 @@
 package dbrepo
 
 import (
+	"fmt"
+	"log"
 	"os"
 	"testing"
 
-	"github.com/go-sql-driver/mysql"
+	"github.com/ptamarov/go-cards/pkg/config"
+	"github.com/ptamarov/go-cards/pkg/driver"
+	"github.com/ptamarov/go-cards/pkg/helpers"
 )
 
-var SQLTest *SQLRepo
-
-// set up database configuration
-var cfg = mysql.Config{
-	User:   os.Getenv("DBUSER"),
-	Passwd: os.Getenv("DBPASS"),
-	Net:    "tcp",
-	Addr:   "127.0.0.1:3306",
-	DBName: "germancorpora",
-}
+var TestDB *postgresDBRepo
+var app config.AppConfig
 
 func TestMain(m *testing.M) {
-	SQLTest = MySQLDatabaseFromConfig(cfg)
+	var err error
+	TestDB, err = run()
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer TestDB.DB.Close()
 	os.Exit(m.Run())
+}
+
+func run() (*postgresDBRepo, error) {
+	// tell app about more complex types to be stored in session
+	// change this to true when in production
+	app.InProduction = false
+	infoLog := log.New(os.Stdout, "INFO\t", log.Ldate|log.Ltime)
+	app.InfoLog = infoLog
+	errorLog := log.New(os.Stdout, "ERROR\t", log.Ldate|log.Ltime|log.Lshortfile)
+	app.ErrorLog = errorLog
+
+	// connect to database
+	app.InfoLog.Println("Connecting to database...")
+	db, err := driver.ConnectSQL("host=localhost port=5432 dbname=go_cards user=ptamarov password=")
+	if err != nil {
+		log.Fatal("while connecting to database:", err)
+	}
+
+	helpers.NewHelpers(&app)
+
+	wd, err := os.Getwd()
+	if err != nil {
+		return nil, err
+	}
+	fmt.Printf("Working directory: %s\n", wd)
+
+	pg := &postgresDBRepo{DB: db.SQL, App: &app}
+	return pg, nil
 }

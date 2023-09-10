@@ -2,6 +2,7 @@ package card
 
 import (
 	"errors"
+	"regexp"
 	"strings"
 
 	"github.com/google/uuid"
@@ -26,21 +27,8 @@ func GetWordToLearnFromPrompt(prompt string) (string, error) {
 	case 1:
 		return "", errors.New("bad input: no closing * found")
 	case 2:
-		start, end := 0, 0
-	outer:
-		for i := 0; i < len(prompt); i++ {
-			if string(prompt[i]) == "*" {
-				start = i + 1
-				end = start
-				for end < len(prompt) && string(prompt[end]) != "*" {
-					end++
-
-				}
-				break outer
-			}
-		}
-		return prompt[start:end], nil
-
+		re := regexp.MustCompile(`\*(.*)\*`)
+		return re.FindStringSubmatch(prompt)[1], nil
 	default:
 		return "", errors.New("bad input: too many delimiters found")
 	}
@@ -54,20 +42,10 @@ func GetRedactedPrompt(prompt string) (string, error) {
 	case 1:
 		return "", errors.New("bad input: no closing * found")
 	case 2:
-		start, end := 0, 0
-	outer:
-		for i := 0; i < len(prompt); i++ {
-			if string(prompt[i]) == "*" {
-				start = i + 1
-				end = start
-				for end < len(prompt) && string(prompt[end]) != "*" {
-					end++
-
-				}
-				break outer
-			}
-		}
-		return prompt[:start-1] + "_____" + prompt[end+1:], nil
+		var newPrompt string
+		re := regexp.MustCompile(`\*.*\*`)
+		newPrompt = re.ReplaceAllString(prompt, "_____")
+		return newPrompt, nil
 
 	default:
 		return "", errors.New("bad input: too many delimiters found")
