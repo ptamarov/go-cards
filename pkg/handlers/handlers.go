@@ -1,11 +1,13 @@
 package handlers
 
 import (
+	"database/sql"
 	"net/http"
 	"time"
 
 	"github.com/ptamarov/go-cards/app/algorithm"
 	"github.com/ptamarov/go-cards/app/history"
+	"github.com/ptamarov/go-cards/app/judges"
 	"github.com/ptamarov/go-cards/pkg/config"
 	"github.com/ptamarov/go-cards/pkg/driver"
 	"github.com/ptamarov/go-cards/pkg/helpers"
@@ -20,13 +22,14 @@ var Repo *Repository
 
 // Repository is the repository type
 type Repository struct {
-	App *config.AppConfig
-	DB  repository.DatabaseRepository
+	App       *config.AppConfig
+	DB        repository.DatabaseRepository
+	Algorithm algorithm.NextCardAlgorithm
 }
 
 // NewRepo creates a new repository
-func NewRepo(a *config.AppConfig, db *driver.DB) *Repository {
-	return &Repository{App: a, DB: dbrepo.NewPostgresRepo(db.SQL, a)}
+func NewRepo(a *config.AppConfig, db *driver.DB, algo algorithm.NextCardAlgorithm) *Repository {
+	return &Repository{App: a, DB: dbrepo.NewPostgresRepo(db.SQL, a), Algorithm: algo}
 }
 
 // NewHandlers sets the repository for the handlers
@@ -38,7 +41,9 @@ func NewHandlers(r *Repository) {
 func (m *Repository) GetGuess(w http.ResponseWriter, r *http.Request) {
 	// once a guess is posted, session has started
 	// must be a better way to do this
-	m.App.NotFresh = true
+	if !m.App.NotFresh {
+		m.App.NotFresh = true
+	}
 
 	// measure delta
 	newTime := time.Now()
@@ -53,37 +58,57 @@ func (m *Repository) GetGuess(w http.ResponseWriter, r *http.Request) {
 
 	// prepare action payload
 	newAction := history.UserAction{
-		UserID:   m.App.UserID,
+		UserID:   m.App.UserData.UserID,
 		CardID:   lastCardData.ID,
-		DeckID:   m.App.UserID,
+		DeckID:   m.App.UserData.UserID,
 		Guess:    guess,
 		Duration: delta,
 		Date:     time.Now(),
 	}
 
 	// record in database
-	err := m.DB.RecordActionForUserAndDeck(newAction)
+	err := m.DB.RecordAction(newAction)
 	if err != nil {
 		helpers.ServerError(w, err)
 		return
 	}
 
-	// check if user guess was right
+	userID := m.App.UserData.UserID
+	cardID := lastCardData.ID
+	deckID := m.App.UserData.UserID
 
-	var judge = algorithm.LevenshsteinJudge{
-		CaseInsensitive:   true,
-		UmlautInsensitive: true,
+	actions, err := m.DB.GetAllActionsForCard(userID, deckID, cardID)
+	if err != nil {
+		helpers.ServerError(w, err)
+		return
 	}
 
-	evaluation := judge.EvaluateGuess(lastCardData, newAction)
-	m.App.InfoLog.Printf("evaluation result was %f for guess %s with answer %s\n", evaluation, guess, lastCardData.Answer)
+	cardStatus, err := m.DB.GetCardStatus(userID, deckID, cardID)
+	if err != nil {
+		helpers.ServerError(w, err)
+		return
+	}
 
-	if evaluation == 1.00 {
+	oldProgress := cardStatus.CardProgress
+	judge := &judges.LevenshsteinJudge{CaseInsensitive: true, UmlautInsensitive: true}
+	newStatus := m.Algorithm.ComputeNewCardStatus(lastCardData, actions, judge, cardStatus)
+
+	err = m.DB.UpdateCardStatus(userID, deckID, cardID, newStatus)
+	if err != nil {
+		helpers.ServerError(w, err)
+		return
+	}
+	madeProgress := (newStatus.CardProgress > oldProgress)
+
+	if madeProgress {
 		// if right, get new card and populate template data
-		newCardData, err := m.DB.GetRandomCardInDatabase()
-		if err != nil {
+		newCardData, err := m.DB.GetCardToLearn(m.App.UserData.UserID, m.App.UserData.UserID)
+		if err == sql.ErrNoRows {
+			http.Redirect(w, r, "/come-back-later", http.StatusSeeOther)
+		} else if err != nil {
 			helpers.ServerError(w, err)
-			panic(err)
+			m.App.ErrorLog.Println("while getting top card:", err)
+			return
 		}
 		Repo.App.UserData.CardData = newCardData
 		Repo.App.UserData.LastAnswer = ""
@@ -105,9 +130,13 @@ func (m *Repository) ShowCard(w http.ResponseWriter, r *http.Request) {
 
 	td := models.TemplateData{} // generate new template data to pass on
 	if !m.App.NotFresh {
-		newCard, err := m.DB.GetRandomCardInDatabase()
-		if err != nil {
-			m.App.ErrorLog.Println(err)
+		newCard, err := m.DB.GetCardToLearn(m.App.UserData.UserID, m.App.UserData.UserID)
+		if err == sql.ErrNoRows {
+			http.Redirect(w, r, "/come-back-later", http.StatusSeeOther)
+		} else if err != nil {
+			helpers.ServerError(w, err)
+			m.App.ErrorLog.Println("while getting top card:", err)
+			return
 		} else {
 			td.CardData = newCard
 			m.App.UserData.CardData = newCard
@@ -127,6 +156,10 @@ func (m *Repository) ShowCard(w http.ResponseWriter, r *http.Request) {
 
 func (m *Repository) Home(w http.ResponseWriter, r *http.Request) {
 	renders.RenderTemplate(w, r, "home.page.tmpl", &models.TemplateData{})
+}
+
+func (m *Repository) ComeBackLater(w http.ResponseWriter, r *http.Request) {
+	renders.RenderTemplate(w, r, "come-back-later.page.tmpl", &models.TemplateData{})
 }
 
 func (m *Repository) UpdateUserProgress() {

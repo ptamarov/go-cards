@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/alexedwards/scs/v2"
+	"github.com/ptamarov/go-cards/app/algorithm"
 	"github.com/ptamarov/go-cards/app/card"
 	"github.com/ptamarov/go-cards/pkg/config"
 	"github.com/ptamarov/go-cards/pkg/driver"
@@ -40,7 +41,7 @@ func main() {
 	}
 
 	err = srv.ListenAndServe()
-	log.Fatal(fmt.Sprintln("Fatal error while listening and serving", err))
+	log.Fatal(fmt.Sprintln("fatal error while listening and serving", err))
 }
 
 func run() (*driver.DB, error) {
@@ -65,26 +66,29 @@ func run() (*driver.DB, error) {
 	// make the session variable available to other packages
 	app.Session = session
 
+	fmt.Print("\n")
 	// connect to database
-	app.InfoLog.Println("Connecting to database...")
+	app.InfoLog.Println("connecting to database...")
 	db, err := driver.ConnectSQL("host=localhost port=5432 dbname=go_cards user=ptamarov password=")
 	if err != nil {
 		log.Fatal("while connecting to database:", err)
 	}
+	app.InfoLog.Println("...connected!")
 
 	tc, err := renders.CreateTemplateCache() // create the template cache
 	if err != nil {
-		app.ErrorLog.Fatal("main; cannot create template cache")
+		app.ErrorLog.Fatal("cannot create template cache")
 		return nil, err
 	}
 	app.TemplateCache = tc // assign the tc to the app configuration variable
 	app.UseCache = false
 
-	repo := handlers.NewRepo(&app, db) // create a (pointer to a) repository variable
-	handlers.NewHandlers(repo)         // set the app repo to this variable
+	algo := algorithm.SM2Algorithm{}
+	repo := handlers.NewRepo(&app, db, &algo) // create a (pointer to a) repository variable
+	handlers.NewHandlers(repo)                // set the app repo to this variable
 
 	helpers.NewHelpers(&app)
-	renders.NewRenders(&app) // renders gets its own app variable so it can access cached templates
+	renders.NewRenders(&app) // link app to renders
 
 	wd, err := os.Getwd()
 	if err != nil {

@@ -1,7 +1,6 @@
 package config
 
 import (
-	"database/sql"
 	"html/template"
 	"log"
 	"time"
@@ -18,8 +17,6 @@ type AppConfig struct {
 	InfoLog         *log.Logger
 	ErrorLog        *log.Logger
 	Session         *scs.SessionManager
-	DataBase        *sql.DB
-	UserID          uuid.UUID
 	UserData        UserCache
 	GetTranslations bool
 	NotFresh        bool
@@ -27,6 +24,7 @@ type AppConfig struct {
 }
 
 type UserCache struct {
+	UserID         uuid.UUID
 	UserName       string
 	AuthKey        string
 	TargetLanguage string

@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/ptamarov/go-cards/app/deck"
 )
 
 type UserAction struct {
@@ -15,8 +16,7 @@ type UserAction struct {
 	Date     time.Time // include
 }
 
-type UserHistoryForDeck struct {
-	UserID         uuid.UUID
-	DeckID         uuid.UUID
-	HistoryForDeck []UserAction
+type DeckWithHistory struct {
+	History map[uuid.UUID][]UserAction // History maps a card ID to the user actions for that card
+	deck.MemoryCardDeck
 }

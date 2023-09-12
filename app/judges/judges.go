@@ -1,7 +1,6 @@
-package algorithm
+package judges
 
 import (
-	"log"
 	"strings"
 	"unicode"
 
@@ -11,14 +10,17 @@ import (
 )
 
 // Judges for cards
-type GuessJudge interface {
+type Judge interface {
 	EvaluateUserAction(card card.MemoryCard, h history.UserAction) float64
 }
 
+// NaiveJudge evaluates a guess by checking if the two strings are equal.
 type NaiveJudge struct {
+	CaseInsensitive   bool
+	UmlautInsensitive bool
 }
 
-func (nj NaiveJudge) EvaluateGuess(card card.MemoryCard, g history.UserAction) float64 {
+func (nj *NaiveJudge) EvaluateUserAction(card card.MemoryCard, g history.UserAction) float64 {
 	if strings.EqualFold(card.Answer, g.Guess) {
 		return 1.0
 	} else {
@@ -31,11 +33,10 @@ type LevenshsteinJudge struct {
 	UmlautInsensitive bool
 }
 
-func (lj LevenshsteinJudge) EvaluateGuess(card card.MemoryCard, g history.UserAction) float64 {
+func (lj *LevenshsteinJudge) EvaluateUserAction(card card.MemoryCard, g history.UserAction) float64 {
 	answer := card.Answer
 	guess := g.Guess
 
-	log.Printf("checking %s against %s", answer, guess)
 	var options = levenshtein.Options{
 		InsCost: 1,
 		DelCost: 1,
@@ -72,14 +73,14 @@ func MatchUmlautAndCaseInsensitive(a rune, b rune) bool {
 }
 
 func removeUmlauts(a rune) rune {
-	if newRune, ok := umlautdict[a]; ok {
+	if newRune, ok := umlautToVowelMap[a]; ok {
 		return newRune
 	} else {
 		return a
 	}
 }
 
-var umlautdict map[rune]rune = map[rune]rune{
+var umlautToVowelMap map[rune]rune = map[rune]rune{
 	196: 65,
 	214: 79,
 	220: 85,

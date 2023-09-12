@@ -18,6 +18,7 @@ func routes(app *config.AppConfig) http.Handler {
 	// Handle GET requests
 	mux.Get("/", handlers.Repo.Home)
 	mux.Get("/get-guess", handlers.Repo.GetGuess)
+	mux.Get("/come-back-later", handlers.Repo.ComeBackLater)
 	mux.Post("/get-guess", handlers.Repo.GetGuess)
 
 	// Handle POST requests

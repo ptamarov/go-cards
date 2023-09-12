@@ -9,6 +9,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/ptamarov/go-cards/app/card"
 	"github.com/ptamarov/go-cards/app/history"
+	"github.com/ptamarov/go-cards/app/judges"
 )
 
 // GetRandomCardInDatabase gets a random card in the cards table.
@@ -22,32 +23,34 @@ func (m *postgresDBRepo) GetRandomCardInDatabase() (card.MemoryCard, error) {
 	LIMIT 1;`
 
 	row := db.QueryRow(query)
-
 	var rawPrompt string
 
-	switch err := row.Scan(
+	err := row.Scan(
 		&newCard.ID,
 		&newCard.Grammar,
 		&newCard.Hint,
 		&newCard.LanguageToLearn,
 		&newCard.UserLanguage,
 		&rawPrompt,
-		&newCard.PromptTranslation); err {
-	case sql.ErrNoRows:
+		&newCard.PromptTranslation)
+
+	if err != nil {
 		return newCard, err
-	case nil:
-		newCard.Prompt, err = card.GetRedactedPrompt(rawPrompt)
-		if err != nil {
-			log.Printf("while fetching prompt for %s: %v\n", newCard.ID, err)
-		}
-		newCard.Answer, err = card.GetWordToLearnFromPrompt(rawPrompt)
-		if err != nil {
-			log.Printf("while fetching answer for %s: %v\n", newCard.ID, err)
-		}
-		return newCard, nil
-	default:
-		panic(err)
 	}
+
+	newCard.Prompt, err = card.GetRedactedPrompt(rawPrompt)
+	if err != nil {
+		log.Printf("while fetching prompt for %s: %v\n", newCard.ID, err)
+		return newCard, err
+	}
+
+	newCard.Answer, err = card.GetWordToLearnFromPrompt(rawPrompt)
+	if err != nil {
+		log.Printf("while fetching answer for %s: %v\n", newCard.ID, err)
+		return newCard, err
+	}
+
+	return newCard, nil
 }
 
 // GetCardByID gets a card from its ID with a raw prompt
@@ -77,16 +80,19 @@ func (m *postgresDBRepo) GetCardByID(cardID uuid.UUID) (card.MemoryCard, error) 
 	if err != nil {
 		log.Printf("while fetching answer for %s: %v\n", newCard.ID, err)
 	}
+	newCard.Prompt, err = card.GetRedactedPrompt(newCard.Prompt)
+	if err != nil {
+		log.Printf("while redacting prompt for %s: %v\n", newCard.ID, err)
+	}
 	return newCard, nil
 }
 
-// GetTopCardFromDeck gets the card for a given userID and given deckID that has the highest
+// GetCardToLearn gets the card for a given userID and given deckID that has the highest
 // priority to be seen next. This means that the card's 'see next' is the smallest date
 // which is larger or equal to time.Now(). Returns an error if no such card exists.
-func (m *postgresDBRepo) GetTopCardFromDeck(userID, deckID uuid.UUID) (card.MemoryCard, error) {
+func (m *postgresDBRepo) GetCardToLearn(userID, deckID uuid.UUID) (card.MemoryCard, error) {
 	var newCard card.MemoryCard
 	var cardID uuid.UUID
-
 	query := `
 	SELECT 		card_id
 	FROM 		decks
@@ -98,26 +104,116 @@ func (m *postgresDBRepo) GetTopCardFromDeck(userID, deckID uuid.UUID) (card.Memo
 	ORDER BY 	date_ready ASC
 	LIMIT(1)
 	`
-
 	row := m.DB.QueryRow(query, userID, deckID)
-
 	err := row.Scan(&cardID)
 	if err != nil {
 		return newCard, err
 	}
-
 	newCard, err = m.GetCardByID(cardID)
 	if err != nil {
 		return newCard, err
 	}
-
 	return newCard, nil
 }
 
-// PutCardBackWithNewDate updates the time in the future the card will be seen next for a
-// given userID within the input deckID.
-func (m *postgresDBRepo) UpdateCardSeeNextDate(userID, deckID, cardID uuid.UUID, newDate time.Time) error {
-	return nil
+func (m *postgresDBRepo) GetCardStatus(userID, deckID, cardID uuid.UUID) (card.CardStatus, error) {
+	var cardStatus card.CardStatus
+
+	query := `
+	SELECT 	date_ready, card_learned, card_progress
+	FROM 	decks 
+	WHERE 	user_id = $1
+	AND		card_id = $2
+	AND 	deck_id = $3	
+	`
+
+	row := m.DB.QueryRow(query, userID, cardID, deckID)
+
+	var learned int
+	var date string
+
+	err := row.Scan(&date, &learned, &cardStatus.CardProgress)
+	if err != nil {
+		m.App.ErrorLog.Println("while scannig row", err)
+		return cardStatus, err
+	}
+
+	dateTime, err := time.Parse("2006-01-02T15:04:05Z07:00", date)
+	if err != nil {
+		m.App.ErrorLog.Println("while parsing date", err)
+		return cardStatus, err
+	}
+	cardStatus.NextAvailableDate = dateTime
+	cardStatus.CardLearned = (learned != 0)
+
+	return cardStatus, nil
+}
+
+func (m *postgresDBRepo) UpdateCardStatus(userID, deckID, cardID uuid.UUID, status card.CardStatus) error {
+
+	dateString := status.NextAvailableDate.Format("2006-01-02T15:04:05Z07:00")
+
+	query := `
+		UPDATE 	decks 
+		SET 	date_ready = $1, card_learned = $2, card_progress = $3
+		WHERE 	user_id = $4
+		AND		card_id = $5
+		AND 	deck_id = $6`
+
+	var cardLearned int
+	if status.CardLearned {
+		cardLearned = 1
+	}
+	result, err := m.DB.Exec(query, dateString, cardLearned, status.CardProgress, userID, cardID, deckID)
+	if err != nil {
+		return err
+	}
+	rowsAff, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	m.App.InfoLog.Println("rows affected:", rowsAff)
+	return err
+}
+
+func (m *postgresDBRepo) GetAllActionsForCard(userID, deckID, cardID uuid.UUID) ([]history.UserAction, error) {
+	var actions []history.UserAction
+
+	query := `
+	SELECT 	guess, duration, created_at
+	FROM 	history
+	WHERE 	user_id = $1
+	AND 	deck_id = $2
+	AND 	card_id = $3
+	`
+
+	rows, err := m.DB.Query(query, userID, deckID, cardID)
+	if err != nil {
+		m.App.ErrorLog.Println("while executing query:", err)
+		return actions, err
+	}
+
+	for rows.Next() {
+		newAction := history.UserAction{UserID: userID, CardID: cardID, DeckID: deckID}
+		var date string
+		err := rows.Scan(
+			&newAction.Guess,
+			&newAction.Duration,
+			&date,
+		)
+		if err != nil {
+			m.App.ErrorLog.Println("while reading new row:", err)
+			return actions, err
+		}
+		parsedDate, err := time.Parse("2006-01-02T15:04:05Z07:00", date)
+		if err != nil {
+			m.App.ErrorLog.Println("while parsing date:", err)
+			return actions, err
+		}
+		newAction.Date = parsedDate
+		actions = append(actions, newAction)
+	}
+	return actions, nil
 }
 
 // GetCardPromptFromCardID gets the redacted prompt of a card from its ID.
@@ -146,23 +242,85 @@ func (m *postgresDBRepo) GetRedactedPromptFromCardID(cardID uuid.UUID) (string, 
 
 // GetNumberOfCardsAnsweredCorrectlyForDate gets the number of cards the user has
 // answered correctly within the given time interval.
-func (m *postgresDBRepo) GetNumberOfCardsAnsweredCorrectlyForEpoch(start, end time.Time) (int, error) {
-	// query history table
-	var z int
-	return z, nil
+func (m *postgresDBRepo) GetAnsweredCorrectlyFromTo(
+	userID, deckID uuid.UUID,
+	start, end time.Time,
+	judge judges.Judge) (int, error) {
+	var actions []history.UserAction
+	var count int
+
+	query := `
+	SELECT 	user_id, deck_id, card_id, guess, duration
+	FROM 	history
+	WHERE 	user_id = $1
+	AND		deck_id = $2
+	WHERE   $3 < created_at
+	AND 	created_at < $4
+	`
+
+	s, e := start.Format("2006-01-02"), end.Format("2006-01-02")
+	rows, err := m.DB.Query(query, userID, deckID, s, e)
+	if err != nil {
+		m.App.ErrorLog.Println("while executing query", err)
+		return count, err
+	}
+
+	for rows.Next() {
+		var action history.UserAction
+		err := rows.Scan(&action.UserID,
+			&action.DeckID,
+			&action.CardID,
+			&action.Guess,
+			&action.Duration,
+		)
+		if err != nil {
+			m.App.ErrorLog.Println("while scanning next row", err)
+			return count, err
+		}
+		actions = append(actions, action)
+	}
+
+	if err := rows.Err(); err != nil {
+		m.App.ErrorLog.Println("while checking for error after iteration", err)
+		return count, err
+	}
+
+	for _, action := range actions {
+		card, err := m.GetCardByID(action.CardID)
+		if err != nil {
+			m.App.ErrorLog.Println("while fetching card to get guess", err)
+		}
+		if judge.EvaluateUserAction(card, action) == 1 {
+			count++
+		}
+	}
+	return count, nil
 }
 
 // GetTimesCardAnsweredInDeck gets the number of times the user has answered a given
 // card within a given deck
-func (m *postgresDBRepo) GetTimesCardAnsweredInDeck(userID, deckID, cardID uuid.UUID) (int, error) {
-	return 0, nil
+func (m *postgresDBRepo) GetTimeSeen(userID, deckID, cardID uuid.UUID) (int, error) {
+	var count int
+	query := `
+	SELECT 	COUNT(*)
+	FROM 	history
+	WHERE 	user_id = $1
+	AND		deck_id = $2
+	AND 	card_id = $3
+	`
+	row := m.DB.QueryRow(query, userID, deckID, cardID)
+	err := row.Scan(&count)
+	if err != nil {
+		return count, err
+	}
+	return count, nil
 }
 
-func (m *postgresDBRepo) GetUserHistoryForDeck(userid, deckid uuid.UUID) history.UserHistoryForDeck {
-	return history.UserHistoryForDeck{}
+func (m *postgresDBRepo) GetAllActionsForDeck(userid, deckid uuid.UUID) ([]history.UserAction, error) {
+	return []history.UserAction{}, nil
 }
 
-func (m *postgresDBRepo) RecordActionForUserAndDeck(action history.UserAction) error {
+func (m *postgresDBRepo) RecordAction(action history.UserAction) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 

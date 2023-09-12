@@ -6,19 +6,22 @@ import (
 	"github.com/google/uuid"
 	"github.com/ptamarov/go-cards/app/card"
 	"github.com/ptamarov/go-cards/app/history"
+	"github.com/ptamarov/go-cards/app/judges"
 )
 
 type DatabaseRepository interface {
 	// GET ROUTINES
-	GetRedactedPromptFromCardID(id uuid.UUID) (string, error)
 	GetCardByID(cardID uuid.UUID) (card.MemoryCard, error)
-	GetTopCardFromDeck(userID, deckID uuid.UUID) (card.MemoryCard, error)
-	GetNumberOfCardsAnsweredCorrectlyForEpoch(start, end time.Time) (int, error)
-	GetTimesCardAnsweredInDeck(userid, deckid, cardid uuid.UUID) (int, error)
-	GetUserHistoryForDeck(userid, deckid uuid.UUID) history.UserHistoryForDeck
-	GetRandomCardInDatabase() (card.MemoryCard, error)
+	GetCardStatus(userID, deckID, cardID uuid.UUID) (card.CardStatus, error)
+	GetCardToLearn(userID, deckID uuid.UUID) (card.MemoryCard, error)
+	GetAllActionsForDeck(userid, deckid uuid.UUID) ([]history.UserAction, error)
+	GetAllActionsForCard(userID, deckID, cardID uuid.UUID) ([]history.UserAction, error)
+	GetAnsweredCorrectlyFromTo(userID, deckID uuid.UUID, start, end time.Time, judge judges.Judge) (int, error)
+	GetRedactedPromptFromCardID(id uuid.UUID) (string, error)
+	GetTimeSeen(userID, deckID, cardID uuid.UUID) (int, error)
 
+	GetRandomCardInDatabase() (card.MemoryCard, error)
 	// PUT ROUTINES
-	RecordActionForUserAndDeck(history.UserAction) error
-	UpdateCardSeeNextDate(userID, deckID, cardID uuid.UUID, newDate time.Time) error
+	RecordAction(history.UserAction) error
+	UpdateCardStatus(userID, deckID, cardID uuid.UUID, status card.CardStatus) error
 }
