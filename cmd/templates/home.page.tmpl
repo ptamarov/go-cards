@@ -4,19 +4,6 @@
 <div class="container p-3">
     <div class="row mx-auto">
         <div class="col-md-6 mx-auto">
-            <div class="card">
-                <div class="card-body">
-                    <form class="form needs validation" action="/learn">
-                        <div class="row p-3 text-center">
-                            <div class="col">
-                                <input type="submit" class="btn btn-dark" value="Start learning" autofocus>
-                            </div>
-                        </div>
-                    </form>
-                </div>
-            </div>
-            <br>
-            
             <div class="card" style="--bs-card-spacer-x: 2rem; --bs-card-spacer-y: 2rem">
                 <div class="card-body" >
                 <h5 class="card-title sansMedium">Active word progress</h5>
@@ -27,6 +14,7 @@
                         {{ $inProgress := index .IntMap "in_progress" }}
                         {{ $learned := index .IntMap "learned" }}
                         {{ $notSeen := index .IntMap "not_seen" }}
+                        {{ $readyCount := index .IntMap "cards_ready" }}
                         {{ $size := index .IntMap "total" }}
                         Progress: {{ $learnedPerc }}% of {{ $size }}  
                     </div>
@@ -64,7 +52,7 @@
     <div class="row mx-auto">
         <div class="col-md-3 mx-auto">
         </div>
-        <div class="col-md-3 mx-auto">
+        <div class="col-md-2 mx-auto">
             <div class="card" style="--bs-card-spacer-x: 2rem; --bs-card-spacer-y: 2rem">
                 <div class="card-body sansSmall" >
                 <h5 class="card-title sansMedium"> {{ $size }} </h5>
@@ -72,7 +60,7 @@
                 </div>
             </div>
         </div>
-        <div class="col-md-3 mx-auto">
+        <div class="col-md-2 mx-auto">
             <div class="card" style="--bs-card-spacer-x: 2rem; --bs-card-spacer-y: 2rem">
                 <div class="card-body sansSmall" >
                 <h5 class="card-title sansMedium">{{ $learned }} </h5>
@@ -80,7 +68,56 @@
                 </div>
             </div>
         </div>
+        <div class="col-md-2 mx-auto">
+            <div class="card" style="--bs-card-spacer-x: 2rem; --bs-card-spacer-y: 2rem">
+                <div class="card-body sansSmall" >
+                <h5 class="card-title sansMedium">{{ $readyCount }} </h5>
+                        Cards ready 
+                </div>
+            </div>
+        </div>
         <div class="col-md-3 mx-auto">
+        </div>
+    </div>
+    <br>
+    <div class="row mx-auto">
+        <div class="col-md-6 mx-auto">
+            <div class="card" style="--bs-card-spacer-x: 2rem; --bs-card-spacer-y: 2rem">
+                <div class="card-body">
+                <h5 class="card-title sansMedium">Daily progress</h5>
+                    <div class="row p-2 sansSmall text-center">
+                        Progress: {{ index .IntMap "correct_today" }} of {{ index .IntMap "daily_goal" }}   
+                    </div>
+                    <div class="row p-1 text-center">
+                        <div class="progress" style="padding-right: 0; padding-left: 0">
+                            <div class="progress-bar bg-success" 
+                                role="progressbar" 
+                                aria-label="inProgress" 
+                                style='width: {{ index .FloatMap "bar_progress_perc" }}%'
+                                aria-valuenow='{{ index .IntMap "correct_today" }}'
+                                aria-valuemin="0" 
+                                aria-valuemax='{{ index .IntMap "daily_goal" }}'>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <br>
+    <div class="row mx-auto">
+        <div class="col-md-6 mx-auto">
+            <div class="card">
+                <div class="card-body">
+                    <form class="form needs validation" action="/learn">
+                        <div class="row p-3 text-center">
+                            <div class="col">
+                                <input type="submit" class="btn btn-dark" value="Start learning" autofocus>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
         </div>
     </div>
 </div>

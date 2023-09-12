@@ -71,22 +71,24 @@
                         <div class="card-footer">
                             <div class="row justify-content-center">
                                 <div class="col-sm-1 sansSmall text-end p-0" style="width: 8%">
-                                {{ index .IntMap "correct_today" }}
-                                {{ $progress := index .IntMap "progress" }}
+                                {{ $goal := index .IntMap "daily_goal" }}
+                                {{ $percentageProgress := index .FloatMap "bar_progress_perc" }}
+                                {{ $barProgress := index .IntMap "correct_today" }}
+                                {{ $barProgress }}
                                 </div>
                                 <div class="col-md-10">
                                     <div class="progress">
-                                        <div class='progress-bar bg-success w-{{ $progress }}' 
+                                        <div class='progress-bar bg-success w-{{ $barProgress }}' 
                                             role="progressbar"  
-                                            aria-valuenow='{{ $progress }}'
+                                            aria-valuenow='{{ $barProgress }}'
                                             aria-valuemin="0" 
-                                            aria-valuemax="100"
-                                            style="width:{{ $progress }}%">
+                                            aria-valuemax="{{ $goal }}"
+                                            style="width: {{ $percentageProgress }}%">
                                         </div>
                                     </div>
                                 </div>
                                 <div class="col-sm-1 sansSmall text-start p-0" style="width: 8%">
-                                50
+                                {{ $goal }}
                                 </div>
                             </div>
                         </div>
