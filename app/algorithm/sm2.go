@@ -30,8 +30,8 @@ func (sm2 *SM2Algorithm) ComputeNewCardStatus(c card.MemoryCard, a []history.Use
 	newCardStatus.CardLearned = status.learned
 
 	delta := time.Duration(status.interval) * time.Minute
-	newCardStatus.NextAvailableDate = time.Now().Add(delta)
-
+	newCardStatus.NextAvailableDate = time.Now().UTC().Add(delta)
+	newCardStatus.TimesSeen = status.timesSeen
 	return newCardStatus
 
 }
@@ -51,11 +51,9 @@ func ComputeNextStatus(guessQuality int, oldStatus SM2CardStatus) SM2CardStatus 
 	fmt.Println("[SM2-Algorithm] OLD STATUS:", oldStatus)
 	var newStatus SM2CardStatus
 
-	// update times seen
-	newStatus.timesSeen = oldStatus.timesSeen + 1
-
-	// update progress if quality is 5
+	// update progress and times seen if quality is 5
 	if guessQuality == 5 {
+		newStatus.timesSeen = oldStatus.timesSeen + 1
 		newStatus.progress = oldStatus.progress + 1
 		if newStatus.progress >= 5 {
 			// update learned if progress reaches 5

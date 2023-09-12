@@ -37,23 +37,24 @@ func (na *NaiveAlgorithm) ComputeNewCardStatus(
 	log.Println("score is", score)
 	var newCardStatus card.CardStatus
 
+	timeNowUTC := time.Now().UTC()
 	if score == 1.0 {
-		newCardStatus.NextAvailableDate = time.Now().Add(oneDay)
+		newCardStatus.NextAvailableDate = timeNowUTC.Add(oneDay)
 		newCardStatus.CardProgress = oldStatus.CardProgress + 1
 		if newCardStatus.CardProgress == 5 {
 			newCardStatus.CardLearned = true
 		}
 		return newCardStatus
 	} else if score >= 0.8 {
-		newCardStatus.NextAvailableDate = time.Now().Add(oneHour)
+		newCardStatus.NextAvailableDate = timeNowUTC.Add(oneHour)
 	} else if score >= 0.5 {
-		newCardStatus.NextAvailableDate = time.Now().Add(5 * oneMinute)
+		newCardStatus.NextAvailableDate = timeNowUTC.Add(5 * oneMinute)
 		newCardStatus.CardProgress--
 	} else if score >= 0.2 {
-		newCardStatus.NextAvailableDate = time.Now().Add(oneMinute)
+		newCardStatus.NextAvailableDate = timeNowUTC.Add(oneMinute)
 		newCardStatus.CardProgress--
 	} else {
-		newCardStatus.NextAvailableDate = time.Now().Add(1 * time.Second)
+		newCardStatus.NextAvailableDate = timeNowUTC.Add(1 * time.Second)
 		newCardStatus.CardProgress--
 	}
 

@@ -23,6 +23,7 @@ type MemoryCard struct {
 // CardStatus tracks the status of a card
 type CardStatus struct {
 	NextAvailableDate time.Time
+	TimesSeen         int
 	CardLearned       bool
 	CardProgress      int // integer between -1 and 5, -1: inactive
 }
