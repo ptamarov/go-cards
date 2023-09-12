@@ -9,5 +9,5 @@ import (
 // NextCardAlgorithm computes an updated card status from list of user actions
 // on a card and a judge of correctness.
 type NextCardAlgorithm interface {
-	ComputeNewCardStatus(card.MemoryCard, []history.UserAction, judges.Judge, card.CardStatus) card.CardStatus
+	ComputeNewCardStatus(card.MemoryCard, []history.UserAction, judges.Judge) card.CardStatus
 }

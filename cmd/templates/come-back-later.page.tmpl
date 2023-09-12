@@ -1,6 +1,7 @@
 {{ template "base" . }}
 {{ define "content" }}
-
+{{ $messageDailyGoalComplete := "Daily goal complete. Come back tomorrow!" }}
+{{ $messageNoCardsReadyToLearn := "No cards ready to learn. Come back later!" }}
 <div class="container p-3">
     <div class="row mx-auto">
         <div class="col-md-6 mx-auto">
@@ -8,8 +9,15 @@
                 <div class="card-body">
                     <form class="form needs validation" action="/learn">
                         <div class="row p-3 text-center">
+                        {{ $message := "" }}
                             <div class="col">
-                                No cards ready to learn. Come back later!
+                                {{ $goalReached := index .BoolMap "goal_reached" }}
+                                {{ if $goalReached }}
+                                    {{ $message = $messageDailyGoalComplete}}
+                                {{ else }}
+                                    {{ $message = $messageNoCardsReadyToLearn}}
+                                {{ end }}
+                                {{ $message }}
                             </div>
                         {{/* <div class="row p-3 text-center">
                             <div class="col">

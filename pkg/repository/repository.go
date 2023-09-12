@@ -14,10 +14,10 @@ type DatabaseRepository interface {
 	GetCardByID(cardID uuid.UUID) (card.MemoryCard, error)
 	GetCardStatus(userID, deckID, cardID uuid.UUID) (card.CardStatus, error)
 	GetCardToLearn(userID, deckID uuid.UUID) (card.MemoryCard, error)
-	GetAllActionsForDeck(userid, deckid uuid.UUID) ([]history.UserAction, error)
+	GetAllActionsForDeck(userID, deckID uuid.UUID) ([]history.UserAction, error)
 	GetAllActionsForCard(userID, deckID, cardID uuid.UUID) ([]history.UserAction, error)
 	GetAnsweredCorrectlyFromTo(userID, deckID uuid.UUID, start, end time.Time, judge judges.Judge) (int, error)
-	GetRedactedPromptFromCardID(id uuid.UUID) (string, error)
+	GetRedactedPromptFromCardID(cardID uuid.UUID) (string, error)
 	GetTimeSeen(userID, deckID, cardID uuid.UUID) (int, error)
 
 	GetRandomCardInDatabase() (card.MemoryCard, error)

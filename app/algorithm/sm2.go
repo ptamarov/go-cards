@@ -1,6 +1,7 @@
 package algorithm
 
 import (
+	"fmt"
 	"math"
 	"time"
 
@@ -21,8 +22,9 @@ type SM2CardStatus struct {
 	timesSeen  int
 }
 
-func (sm2 *SM2Algorithm) ComputeNewCardStatus(c card.MemoryCard, a []history.UserAction, j judges.Judge, os card.CardStatus) card.CardStatus {
+func (sm2 *SM2Algorithm) ComputeNewCardStatus(c card.MemoryCard, a []history.UserAction, j judges.Judge) card.CardStatus {
 	var newCardStatus card.CardStatus
+	fmt.Printf("[SM2-Algorithm] Computing new status from %d past actions\n", len(a))
 	status := DetermineStatus(j, c, a)
 	newCardStatus.CardProgress = status.progress
 	newCardStatus.CardLearned = status.learned
@@ -37,11 +39,7 @@ func (sm2 *SM2Algorithm) ComputeNewCardStatus(c card.MemoryCard, a []history.Use
 func ComputeActionQuality(j judges.Judge, card card.MemoryCard, action history.UserAction) int {
 	correctFactor := j.EvaluateUserAction(card, action)
 	// 	4. After each repetition assess the quality of repetition response in 0-5 grade scale.
-	if action.Duration >= 10 {
-		return 0
-	} else {
-		return int(math.Floor(5 * correctFactor))
-	}
+	return int(math.Floor(5 * correctFactor))
 }
 
 func ComputeNextStatus(guessQuality int, oldStatus SM2CardStatus) SM2CardStatus {
@@ -50,7 +48,7 @@ func ComputeNextStatus(guessQuality int, oldStatus SM2CardStatus) SM2CardStatus 
 	// I(2):= 6
 	// for n>2 : I(n) = I(n-1)*EaseFactor
 	// If interval is a fraction, round it up to the nearest integer.
-
+	fmt.Println("[SM2-Algorithm] OLD STATUS:", oldStatus)
 	var newStatus SM2CardStatus
 
 	// update times seen
@@ -93,6 +91,7 @@ func ComputeNextStatus(guessQuality int, oldStatus SM2CardStatus) SM2CardStatus 
 			newStatus.interval = int(math.Ceil(float64(oldStatus.interval) * newStatus.easeFactor))
 		}
 	}
+	fmt.Println("[SM2-Algorithm] NEW STATUS:", newStatus)
 	return newStatus
 }
 
@@ -104,6 +103,7 @@ func DetermineStatus(judge judges.Judge, card card.MemoryCard, actions []history
 
 	for _, action := range actions {
 		quality := ComputeActionQuality(judge, card, action)
+		fmt.Printf("SM2: for %s against %s, quality: %d", card.Answer, action.Guess, quality)
 		currentStatus = ComputeNextStatus(quality, currentStatus)
 	}
 	return currentStatus

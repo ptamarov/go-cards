@@ -48,16 +48,30 @@ func (m *Repository) GetGuess(w http.ResponseWriter, r *http.Request) {
 		m.App.NotFresh = true
 	}
 
+	lastCardData := Repo.App.User.CurrentCard // get last card shown to user
+
+	// check card status before new user action
+	userID := m.App.User.UserID
+	cardID := lastCardData.ID
+	deckID := m.App.User.DeckID
+	cardStatus, err := m.DB.GetCardStatus(userID, deckID, cardID)
+
+	if err != nil {
+		helpers.ServerError(w, err)
+		return
+	}
+	oldProgress := cardStatus.CardProgress
+	m.App.InfoLog.Println("[GetGuess] OLD PROGRESS:", oldProgress)
+
 	// measure delta
 	newTime := time.Now()
 	delta := newTime.Sub(m.App.Time).Seconds()
 
-	m.App.InfoLog.Println("DURATION:", delta)
+	m.App.InfoLog.Println("[GetGuess] DURATION:", delta)
 	guess := r.Form.Get("user_guess")
-	lastCardData := Repo.App.User.CurrentCard // get last card shown to user
 
-	m.App.InfoLog.Println("USER_GUESS:", guess)
-	m.App.InfoLog.Println("EXPECTED_ANSWER:", lastCardData.Answer)
+	m.App.InfoLog.Println("[GetGuess] USER_GUESS:", guess)
+	m.App.InfoLog.Println("[GetGuess] EXPECTED_ANSWER:", lastCardData.Answer)
 
 	// prepare action payload
 	newAction := history.UserAction{
@@ -70,15 +84,11 @@ func (m *Repository) GetGuess(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// record action to database
-	err := m.DB.RecordAction(newAction)
+	err = m.DB.RecordAction(newAction)
 	if err != nil {
 		helpers.ServerError(w, err)
 		return
 	}
-
-	userID := m.App.User.UserID
-	cardID := lastCardData.ID
-	deckID := m.App.User.DeckID
 
 	actions, err := m.DB.GetAllActionsForCard(userID, deckID, cardID)
 	if err != nil {
@@ -86,39 +96,38 @@ func (m *Repository) GetGuess(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	cardStatus, err := m.DB.GetCardStatus(userID, deckID, cardID)
-	if err != nil {
-		helpers.ServerError(w, err)
-		return
-	}
-
-	oldProgress := cardStatus.CardProgress
 	judge := &judges.LevenshsteinJudge{CaseInsensitive: true, UmlautInsensitive: true}
-	newStatus := m.Algorithm.ComputeNewCardStatus(lastCardData, actions, judge, cardStatus)
+	newStatus := m.Algorithm.ComputeNewCardStatus(lastCardData, actions, judge)
+	m.App.InfoLog.Println("[GetGuess] NEW PROGRESS:", newStatus.CardProgress)
 
 	err = m.DB.UpdateCardStatus(userID, deckID, cardID, newStatus)
 	if err != nil {
 		helpers.ServerError(w, err)
 		return
 	}
+
 	madeProgress := (newStatus.CardProgress > oldProgress)
 
 	if madeProgress {
 		// if right, get new card and populate template data
-		newCardData, err := m.DB.GetCardToLearn(m.App.User.UserID, m.App.User.DeckID)
+		newCard, err := m.DB.GetCardToLearn(m.App.User.UserID, m.App.User.DeckID)
+		m.App.ErrorLog.Println(err)
 		if err == sql.ErrNoRows {
+			m.App.InfoLog.Println("[GetGuess] NO ROWS:", err)
 			http.Redirect(w, r, "/come-back-later", http.StatusSeeOther)
+			return
 		} else if err != nil {
 			helpers.ServerError(w, err)
 			m.App.ErrorLog.Println("while getting top card:", err)
 			return
+		} else {
+			m.App.InfoLog.Println("[GetGuess] CARD:", newCard)
+			Repo.App.User.CurrentCard = newCard
+			Repo.App.User.LastAnswer = ""
+			Repo.UpdateUserProgress()
+			m.App.InfoLog.Println("[GetGuess] NEW_PROMPT:", newCard.Prompt)
+			http.Redirect(w, r, "/learn", http.StatusTemporaryRedirect)
 		}
-		Repo.App.User.CurrentCard = newCardData
-		Repo.App.User.LastAnswer = ""
-		Repo.UpdateUserProgress()
-		m.App.InfoLog.Println("NEW_PROMPT:", newCardData.Prompt)
-		http.Redirect(w, r, "/learn", http.StatusTemporaryRedirect)
-
 	} else {
 		Repo.App.User.CurrentCard = lastCardData
 		Repo.App.User.LastAnswer = lastCardData.Answer
@@ -132,7 +141,9 @@ func (m *Repository) ShowCard(w http.ResponseWriter, r *http.Request) {
 	m.App.Time = time.Now()
 
 	if m.App.User.IsDailyGoalReached() {
+		m.App.User.DailyGoalReached = true
 		http.Redirect(w, r, "/come-back-later", http.StatusSeeOther)
+		return
 	}
 
 	var td models.TemplateData // generate new template data to pass on
@@ -182,11 +193,6 @@ func (m *Repository) Home(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	m.App.User.CorrectToday = correct
-
-	if m.App.User.IsDailyGoalReached() {
-		http.Redirect(w, r, "/come-back-later", http.StatusSeeOther)
-	}
-
 	td := models.TemplateData{}
 	td.IntMap = make(map[string]int)
 	td.IntMap["progress"] = correct
@@ -194,7 +200,10 @@ func (m *Repository) Home(w http.ResponseWriter, r *http.Request) {
 }
 
 func (m *Repository) ComeBackLater(w http.ResponseWriter, r *http.Request) {
-	renders.RenderTemplate(w, r, "come-back-later.page.tmpl", &models.TemplateData{})
+	td := models.TemplateData{}
+	td.BoolMap = make(map[string]bool)
+	td.BoolMap["goal_reached"] = m.App.User.DailyGoalReached
+	renders.RenderTemplate(w, r, "come-back-later.page.tmpl", &td)
 }
 
 func (m *Repository) UpdateUserProgress() {

@@ -11,6 +11,7 @@ import (
 	"github.com/alexedwards/scs/v2"
 	"github.com/ptamarov/go-cards/app/algorithm"
 	"github.com/ptamarov/go-cards/app/card"
+	"github.com/ptamarov/go-cards/app/user"
 	"github.com/ptamarov/go-cards/pkg/config"
 	"github.com/ptamarov/go-cards/pkg/driver"
 	"github.com/ptamarov/go-cards/pkg/handlers"
@@ -82,6 +83,9 @@ func run() (*driver.DB, error) {
 	}
 	app.TemplateCache = tc // assign the tc to the app configuration variable
 	app.UseCache = false
+
+	// This will be handled by a log-in page in the future
+	app.User = user.User{UserName: "test_user", DailyGoal: 10}
 
 	algo := algorithm.SM2Algorithm{}
 	repo := handlers.NewRepo(&app, db, &algo) // create a (pointer to a) repository variable
