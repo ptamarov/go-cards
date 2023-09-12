@@ -9,17 +9,78 @@
                     <form class="form needs validation" action="/learn">
                         <div class="row p-3 text-center">
                             <div class="col">
-                                <input type="submit" class="btn btn-outline-dark" value="Start learning">
-                            </div>
-                        </div>
-                        <div class="row p-3 text-center">
-                            <div class="col">
-                                Answered correctly today: {{ index .IntMap "progress" }}
+                                <input type="submit" class="btn btn-dark" value="Start learning" autofocus>
                             </div>
                         </div>
                     </form>
                 </div>
             </div>
+            <br>
+            
+            <div class="card" style="--bs-card-spacer-x: 2rem; --bs-card-spacer-y: 2rem">
+                <div class="card-body" >
+                <h5 class="card-title sansMedium">Active word progress</h5>
+                    <div class="row p-2 sansSmall text-center">
+                        {{ $inProgressPerc := index .FloatMap "in_progress_perc" }}
+                        {{ $learnedPerc := index .FloatMap "learned_perc" }}
+                        {{ $notSeenPerc := index .FloatMap "not_seen_perc" }}
+                        {{ $inProgress := index .IntMap "in_progress" }}
+                        {{ $learned := index .IntMap "learned" }}
+                        {{ $notSeen := index .IntMap "not_seen" }}
+                        {{ $size := index .IntMap "total" }}
+                        Progress: {{ $learnedPerc }}% of {{ $size }}  
+                    </div>
+                    <div class="row p-1 text-center">
+                        
+                        <div class="progress" style="padding-right: 0; padding-left: 0">
+                        <div class="progress-bar bg-info" 
+                            role="progressbar" 
+                            aria-label="inProgress" 
+                            style="width: {{ $inProgressPerc }}%" 
+                            aria-valuenow="{{ $inProgress }}"
+                            aria-valuemin="0" 
+                            aria-valuemax="{{ $size }}"></div>
+                        <div class="progress-bar bg-success" 
+                            role="progressbar" 
+                            aria-label="mastered" 
+                            style="width: {{ $learnedPerc }}%" 
+                            aria-valuenow="{{ $learned }}" 
+                            aria-valuemin="0" 
+                            aria-valuemax="{{ $size }}"></div>
+                        <div class="progress-bar bg-warning" 
+                            role="progressbar" 
+                            aria-label="notSeen" 
+                            style="width: {{ $notSeenPerc }}%" 
+                            aria-valuenow="{{ $notSeen }}" 
+                            aria-valuemin="0" 
+                            aria-valuemax="{{ $size }}"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <br>
+    <div class="row mx-auto">
+        <div class="col-md-3 mx-auto">
+        </div>
+        <div class="col-md-3 mx-auto">
+            <div class="card" style="--bs-card-spacer-x: 2rem; --bs-card-spacer-y: 2rem">
+                <div class="card-body sansSmall" >
+                <h5 class="card-title sansMedium"> {{ $size }} </h5>
+                    Total cards
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mx-auto">
+            <div class="card" style="--bs-card-spacer-x: 2rem; --bs-card-spacer-y: 2rem">
+                <div class="card-body sansSmall" >
+                <h5 class="card-title sansMedium">{{ $learned }} </h5>
+                        Cards learned
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mx-auto">
         </div>
     </div>
 </div>

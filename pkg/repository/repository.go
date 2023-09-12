@@ -20,6 +20,11 @@ type DatabaseRepository interface {
 	GetRedactedPromptFromCardID(cardID uuid.UUID) (string, error)
 	GetTimeSeen(userID, deckID, cardID uuid.UUID) (int, error)
 
+	// STATISTICS
+	GetCountCardsInProgress(userID, deckID uuid.UUID) (int, error)
+	GetCountCardsNotSeen(userID, deckID uuid.UUID) (int, error)
+	GetCountCardsLearned(userID, deckID uuid.UUID) (int, error)
+
 	GetRandomCardInDatabase() (card.MemoryCard, error)
 	// PUT ROUTINES
 	RecordAction(history.UserAction) error

@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"database/sql"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -196,6 +197,40 @@ func (m *Repository) Home(w http.ResponseWriter, r *http.Request) {
 	td := models.TemplateData{}
 	td.IntMap = make(map[string]int)
 	td.IntMap["progress"] = correct
+	td.IntMap["daily_goal"] = m.App.User.DailyGoal
+
+	// get stats
+	inProgress, err := m.DB.GetCountCardsInProgress(uID, dID)
+	if err != nil {
+		helpers.ServerError(w, err)
+		return
+	}
+	cardsLearned, err := m.DB.GetCountCardsLearned(uID, dID)
+	if err != nil {
+		helpers.ServerError(w, err)
+		return
+	}
+	notSeen, err := m.DB.GetCountCardsNotSeen(uID, dID)
+	if err != nil {
+		helpers.ServerError(w, err)
+		return
+	}
+	td.IntMap["not_seen"] = notSeen
+	td.IntMap["learned"] = cardsLearned
+	td.IntMap["in_progress"] = inProgress
+	td.IntMap["total"] = notSeen + cardsLearned + inProgress
+
+	// get percentages
+	notSeenPerC, progressPerC, learnedPerC := getStats(notSeen, inProgress, cardsLearned)
+	if td.FloatMap == nil {
+		td.FloatMap = make(map[string]float64)
+	}
+	td.FloatMap["not_seen_perc"] = notSeenPerC
+	td.FloatMap["learned_perc"] = learnedPerC
+	td.FloatMap["in_progress_perc"] = progressPerC
+
+	fmt.Println(notSeen, cardsLearned, inProgress)
+	fmt.Println(notSeenPerC, learnedPerC, progressPerC)
 	renders.RenderTemplate(w, r, "home.page.tmpl", &td)
 }
 

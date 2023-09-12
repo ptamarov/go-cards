@@ -339,6 +339,58 @@ func (m *postgresDBRepo) GetAllActionsForDeck(userid, deckid uuid.UUID) ([]histo
 	return []history.UserAction{}, nil
 }
 
+func (m *postgresDBRepo) GetCountCardsLearned(userID, deckID uuid.UUID) (int, error) {
+	query := `
+	SELECT 	COUNT(*)
+	FROM 	decks
+	WHERE	user_id = $1
+	AND 	deck_id = $2
+	AND 	card_learned = 1
+	`
+	row := m.DB.QueryRow(query, userID, deckID)
+	var count int
+	err := row.Scan(&count)
+	if err != nil {
+		return count, err
+	}
+	return count, nil
+}
+
+func (m *postgresDBRepo) GetCountCardsNotSeen(userID, deckID uuid.UUID) (int, error) {
+	query := `
+	SELECT 	COUNT(*)
+	FROM 	decks
+	WHERE	user_id = $1
+	AND 	deck_id = $2
+	AND 	times_seen = 0
+	`
+	row := m.DB.QueryRow(query, userID, deckID)
+	var count int
+	err := row.Scan(&count)
+	if err != nil {
+		return count, err
+	}
+	return count, nil
+}
+
+func (m *postgresDBRepo) GetCountCardsInProgress(userID, deckID uuid.UUID) (int, error) {
+	query := `
+	SELECT 	COUNT(*)
+	FROM 	decks
+	WHERE	user_id = $1
+	AND 	deck_id = $2
+	AND 	times_seen > 0
+	AND 	card_learned = 0
+	`
+	row := m.DB.QueryRow(query, userID, deckID)
+	var count int
+	err := row.Scan(&count)
+	if err != nil {
+		return count, err
+	}
+	return count, nil
+}
+
 // RecordACtion records a user action in the database.
 func (m *postgresDBRepo) RecordAction(action history.UserAction) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)

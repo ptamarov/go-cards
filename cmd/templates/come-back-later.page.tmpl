@@ -7,7 +7,7 @@
         <div class="col-md-6 mx-auto">
             <div class="card">
                 <div class="card-body">
-                    <form class="form needs validation" action="/learn">
+                    <form class="form needs validation" action="/">
                         <div class="row p-3 text-center">
                         {{ $message := "" }}
                             <div class="col">
@@ -19,11 +19,14 @@
                                 {{ end }}
                                 {{ $message }}
                             </div>
-                        {{/* <div class="row p-3 text-center">
-                            <div class="col">
-                                <input type="submit" class="btn btn-outline-dark" value="Get reminder.">
+                        </div>
+                        <div class="row p-3 text-center mx-auto">
+                            <div class="col-md-3">
                             </div>
-                        </div> */}}
+                            <div class="col-md-6">
+                                <input type="submit" class="btn btn-dark" value="Main menu" autofocus>
+                            </div>
+                        </div>
                     </form>
                 </div>
             </div>
