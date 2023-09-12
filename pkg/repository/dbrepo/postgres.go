@@ -12,6 +12,9 @@ import (
 	"github.com/ptamarov/go-cards/app/judges"
 )
 
+const GO_DATE_FORMAT = "2006-01-02"
+const GO_TIMESTAMP_FORMAT = "2006-01-02T15:04:05Z07:00"
+
 // GetRandomCardInDatabase gets a random card in the cards table.
 func (m *postgresDBRepo) GetRandomCardInDatabase() (card.MemoryCard, error) {
 	var newCard card.MemoryCard
@@ -130,15 +133,15 @@ func (m *postgresDBRepo) GetCardStatus(userID, deckID, cardID uuid.UUID) (card.C
 	row := m.DB.QueryRow(query, userID, cardID, deckID)
 
 	var learned int
-	var date string
+	var timestamp string
 
-	err := row.Scan(&date, &learned, &cardStatus.CardProgress)
+	err := row.Scan(&timestamp, &learned, &cardStatus.CardProgress)
 	if err != nil {
 		m.App.ErrorLog.Println("while scannig row", err)
 		return cardStatus, err
 	}
 
-	dateTime, err := time.Parse("2006-01-02T15:04:05Z07:00", date)
+	dateTime, err := time.Parse(GO_TIMESTAMP_FORMAT, timestamp)
 	if err != nil {
 		m.App.ErrorLog.Println("while parsing date", err)
 		return cardStatus, err
@@ -151,7 +154,7 @@ func (m *postgresDBRepo) GetCardStatus(userID, deckID, cardID uuid.UUID) (card.C
 
 func (m *postgresDBRepo) UpdateCardStatus(userID, deckID, cardID uuid.UUID, status card.CardStatus) error {
 
-	dateString := status.NextAvailableDate.Format("2006-01-02T15:04:05Z07:00")
+	dateString := status.NextAvailableDate.Format(GO_TIMESTAMP_FORMAT)
 
 	query := `
 		UPDATE 	decks 
@@ -205,7 +208,7 @@ func (m *postgresDBRepo) GetAllActionsForCard(userID, deckID, cardID uuid.UUID) 
 			m.App.ErrorLog.Println("while reading new row:", err)
 			return actions, err
 		}
-		parsedDate, err := time.Parse("2006-01-02T15:04:05Z07:00", date)
+		parsedDate, err := time.Parse(GO_TIMESTAMP_FORMAT, date)
 		if err != nil {
 			m.App.ErrorLog.Println("while parsing date:", err)
 			return actions, err
@@ -242,10 +245,7 @@ func (m *postgresDBRepo) GetRedactedPromptFromCardID(cardID uuid.UUID) (string, 
 
 // GetNumberOfCardsAnsweredCorrectlyForDate gets the number of cards the user has
 // answered correctly within the given time interval.
-func (m *postgresDBRepo) GetAnsweredCorrectlyFromTo(
-	userID, deckID uuid.UUID,
-	start, end time.Time,
-	judge judges.Judge) (int, error) {
+func (m *postgresDBRepo) GetAnsweredCorrectlyFromTo(userID, deckID uuid.UUID, start, end time.Time, judge judges.Judge) (int, error) {
 	var actions []history.UserAction
 	var count int
 
@@ -254,12 +254,23 @@ func (m *postgresDBRepo) GetAnsweredCorrectlyFromTo(
 	FROM 	history
 	WHERE 	user_id = $1
 	AND		deck_id = $2
-	WHERE   $3 < created_at
+	AND	    created_at >= $3 
 	AND 	created_at < $4
 	`
 
-	s, e := start.Format("2006-01-02"), end.Format("2006-01-02")
+	s, e := start.Format(GO_DATE_FORMAT), end.Format(GO_DATE_FORMAT)
+
+	m.App.InfoLog.Printf(`query:
+SELECT	user_id, deck_id, card_id, guess, duration
+FROM	history
+WHERE	user_id = %s
+AND	deck_id = %s
+AND	created_at >= %s
+AND	created_at < %s
+	`, userID, deckID, s, e)
+
 	rows, err := m.DB.Query(query, userID, deckID, s, e)
+
 	if err != nil {
 		m.App.ErrorLog.Println("while executing query", err)
 		return count, err
@@ -278,6 +289,8 @@ func (m *postgresDBRepo) GetAnsweredCorrectlyFromTo(
 			return count, err
 		}
 		actions = append(actions, action)
+		m.App.InfoLog.Println("action card ID", action.CardID)
+
 	}
 
 	if err := rows.Err(); err != nil {
@@ -285,6 +298,7 @@ func (m *postgresDBRepo) GetAnsweredCorrectlyFromTo(
 		return count, err
 	}
 
+	m.App.InfoLog.Println("ACTIONS RETRIEVED:", len(actions))
 	for _, action := range actions {
 		card, err := m.GetCardByID(action.CardID)
 		if err != nil {
@@ -327,13 +341,15 @@ func (m *postgresDBRepo) RecordAction(action history.UserAction) error {
 	statement := `INSERT INTO history (user_id, deck_id, card_id, guess, duration, created_at) 
 	VALUES ($1, $2, $3, $4, $5, $6)`
 
+	dateString := action.Date.Format(GO_TIMESTAMP_FORMAT)
+
 	_, err := m.DB.ExecContext(ctx, statement,
 		action.UserID,
 		action.DeckID,
 		action.CardID,
 		action.Guess,
 		action.Duration,
-		action.Date,
+		dateString,
 	)
 	if err != nil {
 		return err

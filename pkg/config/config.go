@@ -6,8 +6,7 @@ import (
 	"time"
 
 	"github.com/alexedwards/scs/v2"
-	"github.com/google/uuid"
-	"github.com/ptamarov/go-cards/app/card"
+	"github.com/ptamarov/go-cards/app/user"
 )
 
 type AppConfig struct {
@@ -17,19 +16,9 @@ type AppConfig struct {
 	InfoLog         *log.Logger
 	ErrorLog        *log.Logger
 	Session         *scs.SessionManager
-	UserData        UserCache
+	User            user.User
 	GetTranslations bool
 	NotFresh        bool
 	Time            time.Time
-}
-
-type UserCache struct {
-	UserID         uuid.UUID
-	UserName       string
-	AuthKey        string
-	TargetLanguage string
-	LastAnswer     string
-	Progress       int
-	CardData       card.MemoryCard
-	Count          int
+	AuthKey         string
 }

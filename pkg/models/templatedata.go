@@ -7,10 +7,6 @@ type TemplateData struct {
 	StringMap map[string]string
 	IntMap    map[string]int
 	FloatMap  map[string]float32
+	BoolMap   map[string]bool
 	CardData  card.MemoryCard
-	Progress  int
-	CSRFToken string
-	Answer    string
-	Count     int
-	Fresh     bool
 }

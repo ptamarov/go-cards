@@ -12,6 +12,11 @@
                                 <input type="submit" class="btn btn-outline-dark" value="Start learning">
                             </div>
                         </div>
+                        <div class="row p-3 text-center">
+                            <div class="col">
+                                Answered correctly today: {{ index .IntMap "progress" }}
+                            </div>
+                        </div>
                     </form>
                 </div>
             </div>

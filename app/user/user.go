@@ -1,26 +1,22 @@
 package user
 
-import "github.com/google/uuid"
+import (
+	"github.com/google/uuid"
+	"github.com/ptamarov/go-cards/app/card"
+)
 
 type User struct {
-	Name                   string
-	LearningLang           string
-	UserLang               string
-	UserID                 uuid.UUID
-	AnsweredCorrectlyToday int
-	DailyGoal              int
+	UserID         uuid.UUID
+	DeckID         uuid.UUID
+	CurrentCard    card.MemoryCard
+	LastAnswer     string
+	UserName       string
+	TargetLanguage string
+	UserLang       string
+	CorrectToday   int
+	DailyGoal      int
 }
 
 func (u *User) IsDailyGoalReached() bool {
-	return u.AnsweredCorrectlyToday >= u.DailyGoal
-}
-
-// TODO
-type UserHistory struct {
-	UserID string
-	// History map[string]mc_user_history.UserHistoryForDeck
-}
-
-// TODO
-func (uh *UserHistory) InitializeUserHistory() {
+	return u.CorrectToday >= u.DailyGoal
 }

@@ -19,7 +19,10 @@ func NewRenders(a *config.AppConfig) { // Set the app variable.
 }
 
 func AddDefaultTemplateData(td *models.TemplateData, r *http.Request) *models.TemplateData {
-	td.CSRFToken = nosurf.Token(r)
+	if td.StringMap == nil {
+		td.StringMap = make(map[string]string)
+	}
+	td.StringMap["csrf_token"] = nosurf.Token(r)
 	return td
 }
 
