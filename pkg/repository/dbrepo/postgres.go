@@ -79,9 +79,6 @@ func (m *postgresDBRepo) GetCardByID(cardID uuid.UUID) (card.MemoryCard, error) 
 	if err != nil {
 		return newCard, err
 	}
-	if row.Err() != nil {
-		return newCard, err
-	}
 
 	newCard.Answer, err = card.GetWordToLearnFromPrompt(newCard.Prompt)
 	if err != nil {
@@ -114,9 +111,6 @@ func (m *postgresDBRepo) GetCardToLearn(userID, deckID uuid.UUID) (card.MemoryCa
 	row := m.DB.QueryRow(query, userID, deckID)
 	err := row.Scan(&cardID)
 	if err != nil {
-		return newCard, err
-	}
-	if row.Err() != nil {
 		return newCard, err
 	}
 	newCard, err = m.GetCardByID(cardID)
