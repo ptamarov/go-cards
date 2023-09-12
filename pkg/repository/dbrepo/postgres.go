@@ -56,7 +56,7 @@ func (m *postgresDBRepo) GetRandomCardInDatabase() (card.MemoryCard, error) {
 	return newCard, nil
 }
 
-// GetCardByID gets a card from its ID with a raw prompt
+// GetCardByID gets a card from its ID with a redacted prompt.
 func (m *postgresDBRepo) GetCardByID(cardID uuid.UUID) (card.MemoryCard, error) {
 	var newCard card.MemoryCard
 
@@ -93,7 +93,7 @@ func (m *postgresDBRepo) GetCardByID(cardID uuid.UUID) (card.MemoryCard, error) 
 
 // GetCardToLearn gets the card for a given userID and given deckID that has the highest
 // priority to be seen next. This means that the card's 'see next' is the smallest date
-// which is larger or equal to time.Now(). Returns an error if no such card exists.
+// which is larger or equal to time.Now().
 func (m *postgresDBRepo) GetCardToLearn(userID, deckID uuid.UUID) (card.MemoryCard, error) {
 	var newCard card.MemoryCard
 	var cardID uuid.UUID
@@ -120,6 +120,7 @@ func (m *postgresDBRepo) GetCardToLearn(userID, deckID uuid.UUID) (card.MemoryCa
 	return newCard, nil
 }
 
+// GetCardStatus gets the status of a card for a userID and a deckID.
 func (m *postgresDBRepo) GetCardStatus(userID, deckID, cardID uuid.UUID) (card.CardStatus, error) {
 	var cardStatus card.CardStatus
 
@@ -153,6 +154,7 @@ func (m *postgresDBRepo) GetCardStatus(userID, deckID, cardID uuid.UUID) (card.C
 	return cardStatus, nil
 }
 
+// UpdateCardStatus updates the status of a card for a userID and a deckID.
 func (m *postgresDBRepo) UpdateCardStatus(userID, deckID, cardID uuid.UUID, status card.CardStatus) error {
 
 	dateString := status.NextAvailableDate.Format(GO_TIMESTAMP_FORMAT)
@@ -180,6 +182,7 @@ func (m *postgresDBRepo) UpdateCardStatus(userID, deckID, cardID uuid.UUID, stat
 	return err
 }
 
+// GetAllActionsForCard gets all the actions performed by a user, in the given deck, for the given card.
 func (m *postgresDBRepo) GetAllActionsForCard(userID, deckID, cardID uuid.UUID) ([]history.UserAction, error) {
 	var actions []history.UserAction
 
@@ -220,7 +223,7 @@ func (m *postgresDBRepo) GetAllActionsForCard(userID, deckID, cardID uuid.UUID) 
 	return actions, nil
 }
 
-// GetCardPromptFromCardID gets the redacted prompt of a card from its ID.
+// GetCardPromptFromCardID gets the redacted prompt of a card from its card ID.
 func (m *postgresDBRepo) GetRedactedPromptFromCardID(cardID uuid.UUID) (string, error) {
 	var rawPrompt string
 
@@ -313,7 +316,7 @@ AND	created_at < %s
 }
 
 // GetTimesCardAnsweredInDeck gets the number of times the user has answered a given
-// card within a given deck
+// card within a given deck.
 func (m *postgresDBRepo) GetTimeSeen(userID, deckID, cardID uuid.UUID) (int, error) {
 	var count int
 	query := `
@@ -331,10 +334,12 @@ func (m *postgresDBRepo) GetTimeSeen(userID, deckID, cardID uuid.UUID) (int, err
 	return count, nil
 }
 
+// GetAllActionsForDeck gets all actions with the input userID and deckID.
 func (m *postgresDBRepo) GetAllActionsForDeck(userid, deckid uuid.UUID) ([]history.UserAction, error) {
 	return []history.UserAction{}, nil
 }
 
+// RecordACtion records a user action in the database.
 func (m *postgresDBRepo) RecordAction(action history.UserAction) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
