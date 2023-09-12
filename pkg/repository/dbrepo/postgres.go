@@ -93,7 +93,7 @@ func (m *postgresDBRepo) GetCardByID(cardID uuid.UUID) (card.MemoryCard, error) 
 
 // GetCardToLearn gets the card for a given userID and given deckID that has the highest
 // priority to be seen next. This means that the card's 'see next' is the smallest date
-// which is larger or equal to time.Now().
+// which is larger or equal to current time in UTC.
 func (m *postgresDBRepo) GetCardToLearn(userID, deckID uuid.UUID) (card.MemoryCard, error) {
 	var newCard card.MemoryCard
 	var cardID uuid.UUID
@@ -125,7 +125,7 @@ func (m *postgresDBRepo) GetCardStatus(userID, deckID, cardID uuid.UUID) (card.C
 	var cardStatus card.CardStatus
 
 	query := `
-	SELECT 	date_ready, card_learned, card_progress
+	SELECT 	date_ready, card_learned, card_progress, times_seen
 	FROM 	decks 
 	WHERE 	user_id = $1
 	AND		card_id = $2
@@ -136,8 +136,8 @@ func (m *postgresDBRepo) GetCardStatus(userID, deckID, cardID uuid.UUID) (card.C
 
 	var learned int
 	var timestamp string
-
-	err := row.Scan(&timestamp, &learned, &cardStatus.CardProgress)
+	var timesSeen int
+	err := row.Scan(&timestamp, &learned, &cardStatus.CardProgress, &timesSeen)
 	if err != nil {
 		m.App.ErrorLog.Println("while scannig row", err)
 		return cardStatus, err
@@ -150,18 +150,54 @@ func (m *postgresDBRepo) GetCardStatus(userID, deckID, cardID uuid.UUID) (card.C
 	}
 	cardStatus.NextAvailableDate = dateTime
 	cardStatus.CardLearned = (learned != 0)
+	cardStatus.TimesSeen = timesSeen
 
 	return cardStatus, nil
 }
 
+func (m *postgresDBRepo) GetCountCardsReady(userID, deckID uuid.UUID) (int, error) {
+	var count int
+
+	timeNowUTC := time.Now().UTC().Format(GO_TIMESTAMP_FORMAT)
+
+	query := `
+	SELECT 		COUNT(*)
+	FROM 		decks
+	WHERE 		user_id = $1
+	AND 		deck_id = $2
+	AND			date_ready < $3 -- Card is ready to be learned.
+	AND 		card_progress != 5			   -- Card is not learned.
+	AND 		card_progress != -1 		   -- Card is not inactive.
+	`
+
+	row := m.DB.QueryRow(query, userID, deckID, timeNowUTC)
+	err := row.Scan(&count)
+	if err != nil {
+		return count, err
+	}
+	return count, nil
+}
+
+func (m *postgresDBRepo) GetAnsweredCorrectlyToday(userID, deckID uuid.UUID, j judges.Judge) (int, error) {
+	dateNowUTC := time.Now().UTC().Format("2006-01-02")
+	today, _ := time.Parse("2006-01-02", dateNowUTC)
+	oneDay := (24 * 60) * time.Minute
+	tomorrow := today.Add(oneDay)
+
+	correct, err := m.GetAnsweredCorrectlyFromTo(userID, deckID, today, tomorrow, j)
+	if err != nil {
+		return correct, err
+	}
+	return correct, nil
+}
+
 // UpdateCardStatus updates the status of a card for a userID and a deckID.
 func (m *postgresDBRepo) UpdateCardStatus(userID, deckID, cardID uuid.UUID, status card.CardStatus) error {
-
 	dateString := status.NextAvailableDate.Format(GO_TIMESTAMP_FORMAT)
 
 	query := `
 		UPDATE 	decks 
-		SET 	date_ready = $1, card_learned = $2, card_progress = $3
+		SET 	date_ready = $1, card_learned = $2, card_progress = $3, times_seen = $7
 		WHERE 	user_id = $4
 		AND		card_id = $5
 		AND 	deck_id = $6`
@@ -170,15 +206,11 @@ func (m *postgresDBRepo) UpdateCardStatus(userID, deckID, cardID uuid.UUID, stat
 	if status.CardLearned {
 		cardLearned = 1
 	}
-	result, err := m.DB.Exec(query, dateString, cardLearned, status.CardProgress, userID, cardID, deckID)
+
+	_, err := m.DB.Exec(query, dateString, cardLearned, status.CardProgress, userID, cardID, deckID, status.TimesSeen)
 	if err != nil {
 		return err
 	}
-	rowsAff, err := result.RowsAffected()
-	if err != nil {
-		return err
-	}
-	m.App.InfoLog.Println("rows affected:", rowsAff)
 	return err
 }
 
@@ -263,16 +295,6 @@ func (m *postgresDBRepo) GetAnsweredCorrectlyFromTo(userID, deckID uuid.UUID, st
 	`
 
 	s, e := start.Format(GO_DATE_FORMAT), end.Format(GO_DATE_FORMAT)
-
-	m.App.InfoLog.Printf(`query:
-SELECT	user_id, deck_id, card_id, guess, duration
-FROM	history
-WHERE	user_id = %s
-AND	deck_id = %s
-AND	created_at >= %s
-AND	created_at < %s
-	`, userID, deckID, s, e)
-
 	rows, err := m.DB.Query(query, userID, deckID, s, e)
 
 	if err != nil {
@@ -293,8 +315,6 @@ AND	created_at < %s
 			return count, err
 		}
 		actions = append(actions, action)
-		m.App.InfoLog.Println("action card ID", action.CardID)
-
 	}
 
 	if err := rows.Err(); err != nil {
@@ -302,7 +322,6 @@ AND	created_at < %s
 		return count, err
 	}
 
-	m.App.InfoLog.Println("ACTIONS RETRIEVED:", len(actions))
 	for _, action := range actions {
 		card, err := m.GetCardByID(action.CardID)
 		if err != nil {
@@ -396,7 +415,8 @@ func (m *postgresDBRepo) RecordAction(action history.UserAction) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
-	statement := `INSERT INTO history (user_id, deck_id, card_id, guess, duration, created_at) 
+	statement := `
+	INSERT INTO history (user_id, deck_id, card_id, guess, duration, created_at) 
 	VALUES ($1, $2, $3, $4, $5, $6)`
 
 	dateString := action.Date.Format(GO_TIMESTAMP_FORMAT)

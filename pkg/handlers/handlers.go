@@ -2,10 +2,10 @@ package handlers
 
 import (
 	"database/sql"
-	"fmt"
 	"net/http"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/ptamarov/go-cards/app/algorithm"
 	"github.com/ptamarov/go-cards/app/history"
 	"github.com/ptamarov/go-cards/app/judges"
@@ -65,7 +65,7 @@ func (m *Repository) GetGuess(w http.ResponseWriter, r *http.Request) {
 	m.App.InfoLog.Println("[GetGuess] OLD PROGRESS:", oldProgress)
 
 	// measure delta
-	newTime := time.Now()
+	newTime := time.Now().UTC()
 	delta := newTime.Sub(m.App.Time).Seconds()
 
 	m.App.InfoLog.Println("[GetGuess] DURATION:", delta)
@@ -139,8 +139,9 @@ func (m *Repository) GetGuess(w http.ResponseWriter, r *http.Request) {
 
 // ShowCard shows the user a card and handles a post request from the user
 func (m *Repository) ShowCard(w http.ResponseWriter, r *http.Request) {
-	m.App.Time = time.Now()
+	m.App.Time = time.Now().UTC()
 
+	// 1. Check if daily goal is reached. If reached, stop.
 	if m.App.User.IsDailyGoalReached() {
 		m.App.User.DailyGoalReached = true
 		http.Redirect(w, r, "/come-back-later", http.StatusSeeOther)
@@ -148,6 +149,8 @@ func (m *Repository) ShowCard(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var td models.TemplateData // generate new template data to pass on
+
+	// 2. Get the card to learn.
 	if !m.App.NotFresh {
 		newCard, err := m.DB.GetCardToLearn(m.App.User.UserID, m.App.User.DeckID)
 		if err == sql.ErrNoRows {
@@ -172,65 +175,40 @@ func (m *Repository) ShowCard(w http.ResponseWriter, r *http.Request) {
 	if td.IntMap == nil {
 		td.IntMap = make(map[string]int)
 	}
-	td.IntMap["progress"] = 2 * m.App.User.CorrectToday
+	if td.FloatMap == nil {
+		td.FloatMap = make(map[string]float64)
+	}
+	td.IntMap["daily_goal"] = m.App.User.DailyGoal
 	td.IntMap["correct_today"] = m.App.User.CorrectToday
-
-	m.App.InfoLog.Println("ANSWER IS:", td.StringMap["answer"])
+	td.FloatMap["bar_progress_perc"] = percentage(m.App.User.CorrectToday, m.App.User.DailyGoal)
 
 	renders.RenderTemplate(w, r, "show-card.page.tmpl", &td)
 }
 
 func (m *Repository) Home(w http.ResponseWriter, r *http.Request) {
-	dateNow := time.Now().UTC().Format("2006-01-02")
-	today, _ := time.Parse("2006-01-02", dateNow)
-	uID, dID := m.App.User.UserID, m.App.User.DeckID
-	var correct int
+	userID, deckID := m.App.User.UserID, m.App.User.DeckID
 
-	oneDay := (24 * 60) * time.Minute
-	tomorrow := today.Add(oneDay)
-	correct, err := m.DB.GetAnsweredCorrectlyFromTo(uID, dID, today, tomorrow, &judges.LevenshsteinJudge{})
+	// get number of cards answered correctly today
+	correct, err := m.DB.GetAnsweredCorrectlyToday(userID, deckID, &judges.LevenshsteinJudge{})
 	if err != nil {
 		helpers.ServerError(w, err)
 		return
 	}
 	m.App.User.CorrectToday = correct
+
+	count, err := m.DB.GetCountCardsReady(userID, deckID)
+	if err != nil {
+		helpers.ServerError(w, err)
+		return
+	}
 	td := models.TemplateData{}
-	td.IntMap = make(map[string]int)
-	td.IntMap["progress"] = correct
-	td.IntMap["daily_goal"] = m.App.User.DailyGoal
-
-	// get stats
-	inProgress, err := m.DB.GetCountCardsInProgress(uID, dID)
+	err = m.PopulateTemplateWithCurrentStatistics(userID, deckID, &td)
 	if err != nil {
 		helpers.ServerError(w, err)
 		return
 	}
-	cardsLearned, err := m.DB.GetCountCardsLearned(uID, dID)
-	if err != nil {
-		helpers.ServerError(w, err)
-		return
-	}
-	notSeen, err := m.DB.GetCountCardsNotSeen(uID, dID)
-	if err != nil {
-		helpers.ServerError(w, err)
-		return
-	}
-	td.IntMap["not_seen"] = notSeen
-	td.IntMap["learned"] = cardsLearned
-	td.IntMap["in_progress"] = inProgress
-	td.IntMap["total"] = notSeen + cardsLearned + inProgress
+	td.IntMap["cards_ready"] = count
 
-	// get percentages
-	notSeenPerC, progressPerC, learnedPerC := getStats(notSeen, inProgress, cardsLearned)
-	if td.FloatMap == nil {
-		td.FloatMap = make(map[string]float64)
-	}
-	td.FloatMap["not_seen_perc"] = notSeenPerC
-	td.FloatMap["learned_perc"] = learnedPerC
-	td.FloatMap["in_progress_perc"] = progressPerC
-
-	fmt.Println(notSeen, cardsLearned, inProgress)
-	fmt.Println(notSeenPerC, learnedPerC, progressPerC)
 	renders.RenderTemplate(w, r, "home.page.tmpl", &td)
 }
 
@@ -243,4 +221,59 @@ func (m *Repository) ComeBackLater(w http.ResponseWriter, r *http.Request) {
 
 func (m *Repository) UpdateUserProgress() {
 	m.App.User.CorrectToday++
+}
+
+// PopulateTemplateWithCurrentStatistics populates a template with the following information
+//
+// For IntMap:
+//
+//	daily_goal	<- Users daily goal
+//	correct_today	<- Cards answered correctly today
+//	not_seen	<-  Cards not seen to date
+//	learned		<- Cards learned to date
+//	in_progress	<- Cards active but not learned
+//	total		<- Total cards in active deck
+//
+// For FloatMap:
+//
+//	not_seen_percentage	 <- Percentage of cards not seen.
+//	learned_perc 		 <- Percentage of cards learned.
+//	in_progress_perc	 <- Percentage of cards in progress.
+//	bar_progress_perc	 <- Progress bar daily goal percentage.
+func (m *Repository) PopulateTemplateWithCurrentStatistics(userID, deckID uuid.UUID, td *models.TemplateData) error {
+
+	if td.IntMap == nil {
+		td.IntMap = make(map[string]int)
+	}
+	td.IntMap["daily_goal"] = m.App.User.DailyGoal
+	td.IntMap["correct_today"] = m.App.User.CorrectToday
+
+	// get stats
+	inProgress, err := m.DB.GetCountCardsInProgress(userID, deckID)
+	if err != nil {
+		return err
+	}
+	cardsLearned, err := m.DB.GetCountCardsLearned(userID, deckID)
+	if err != nil {
+		return err
+	}
+	notSeen, err := m.DB.GetCountCardsNotSeen(userID, deckID)
+	if err != nil {
+		return err
+	}
+	td.IntMap["not_seen"] = notSeen
+	td.IntMap["learned"] = cardsLearned
+	td.IntMap["in_progress"] = inProgress
+	td.IntMap["total"] = notSeen + cardsLearned + inProgress
+
+	notSeenPerC, progressPerC, learnedPerC := getStats(notSeen, inProgress, cardsLearned)
+	if td.FloatMap == nil {
+		td.FloatMap = make(map[string]float64)
+	}
+	td.FloatMap["not_seen_perc"] = notSeenPerC
+	td.FloatMap["learned_perc"] = learnedPerC
+	td.FloatMap["in_progress_perc"] = progressPerC
+	td.FloatMap["bar_progress_perc"] = percentage(m.App.User.CorrectToday, m.App.User.DailyGoal)
+
+	return nil
 }

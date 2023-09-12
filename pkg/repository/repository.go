@@ -17,10 +17,12 @@ type DatabaseRepository interface {
 	GetAllActionsForDeck(userID, deckID uuid.UUID) ([]history.UserAction, error)
 	GetAllActionsForCard(userID, deckID, cardID uuid.UUID) ([]history.UserAction, error)
 	GetAnsweredCorrectlyFromTo(userID, deckID uuid.UUID, start, end time.Time, judge judges.Judge) (int, error)
+	GetAnsweredCorrectlyToday(userID, deckID uuid.UUID, j judges.Judge) (int, error)
 	GetRedactedPromptFromCardID(cardID uuid.UUID) (string, error)
 	GetTimeSeen(userID, deckID, cardID uuid.UUID) (int, error)
 
 	// STATISTICS
+	GetCountCardsReady(userID, deckID uuid.UUID) (int, error)
 	GetCountCardsInProgress(userID, deckID uuid.UUID) (int, error)
 	GetCountCardsNotSeen(userID, deckID uuid.UUID) (int, error)
 	GetCountCardsLearned(userID, deckID uuid.UUID) (int, error)
