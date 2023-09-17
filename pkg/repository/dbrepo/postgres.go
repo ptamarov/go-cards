@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/ptamarov/go-cards/app/algorithm"
 	"github.com/ptamarov/go-cards/app/card"
 	"github.com/ptamarov/go-cards/app/history"
 	"github.com/ptamarov/go-cards/app/judges"
@@ -121,8 +122,8 @@ func (m *postgresDBRepo) GetCardToLearn(userID, deckID uuid.UUID) (card.MemoryCa
 }
 
 // GetCardStatus gets the status of a card for a userID and a deckID.
-func (m *postgresDBRepo) GetCardStatus(userID, deckID, cardID uuid.UUID) (card.CardStatus, error) {
-	var cardStatus card.CardStatus
+func (m *postgresDBRepo) GetCardStatus(userID, deckID, cardID uuid.UUID) (algorithm.CardStatus, error) {
+	var cardStatus algorithm.CardStatus
 
 	query := `
 	SELECT 	date_ready, card_learned, card_progress, times_seen
@@ -192,7 +193,7 @@ func (m *postgresDBRepo) GetAnsweredCorrectlyToday(userID, deckID uuid.UUID, j j
 }
 
 // UpdateCardStatus updates the status of a card for a userID and a deckID.
-func (m *postgresDBRepo) UpdateCardStatus(userID, deckID, cardID uuid.UUID, status card.CardStatus) error {
+func (m *postgresDBRepo) UpdateCardStatus(userID, deckID, cardID uuid.UUID, status algorithm.CardStatus) error {
 	dateString := status.NextAvailableDate.Format(GO_TIMESTAMP_FORMAT)
 
 	query := `

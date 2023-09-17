@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/ptamarov/go-cards/app/algorithm"
 	"github.com/ptamarov/go-cards/app/card"
 	"github.com/ptamarov/go-cards/app/history"
 	"github.com/ptamarov/go-cards/app/judges"
@@ -12,7 +13,7 @@ import (
 type DatabaseRepository interface {
 	// GET ROUTINES
 	GetCardByID(cardID uuid.UUID) (card.MemoryCard, error)
-	GetCardStatus(userID, deckID, cardID uuid.UUID) (card.CardStatus, error)
+	GetCardStatus(userID, deckID, cardID uuid.UUID) (algorithm.CardStatus, error)
 	GetCardToLearn(userID, deckID uuid.UUID) (card.MemoryCard, error)
 	GetAllActionsForDeck(userID, deckID uuid.UUID) ([]history.UserAction, error)
 	GetAllActionsForCard(userID, deckID, cardID uuid.UUID) ([]history.UserAction, error)
@@ -27,8 +28,7 @@ type DatabaseRepository interface {
 	GetCountCardsNotSeen(userID, deckID uuid.UUID) (int, error)
 	GetCountCardsLearned(userID, deckID uuid.UUID) (int, error)
 
-	GetRandomCardInDatabase() (card.MemoryCard, error)
 	// PUT ROUTINES
 	RecordAction(history.UserAction) error
-	UpdateCardStatus(userID, deckID, cardID uuid.UUID, status card.CardStatus) error
+	UpdateCardStatus(userID, deckID, cardID uuid.UUID, status algorithm.CardStatus) error
 }

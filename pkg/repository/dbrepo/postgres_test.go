@@ -23,7 +23,7 @@ func TestGetCardByID(t *testing.T) {
 				Hint:              "warns of; phrasal verb",
 				LanguageToLearn:   "DE",
 				UserLanguage:      "EN-GB",
-				Prompt:            "Der Gemeinde *warnt vor* Hochwasser.",
+				Prompt:            "Der Gemeinde _____ Hochwasser.",
 				PromptTranslation: "The community warns of floods.",
 				Answer:            "warnt vor",
 			}},
