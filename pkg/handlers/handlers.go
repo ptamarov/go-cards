@@ -8,7 +8,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/ptamarov/go-cards/app/algorithm"
 	"github.com/ptamarov/go-cards/app/history"
-	"github.com/ptamarov/go-cards/app/judges"
 	"github.com/ptamarov/go-cards/pkg/config"
 	"github.com/ptamarov/go-cards/pkg/driver"
 	"github.com/ptamarov/go-cards/pkg/helpers"
@@ -62,15 +61,15 @@ func (m *Repository) GetGuess(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	oldProgress := cardStatus.CardProgress
-	m.App.InfoLog.Println("[GetGuess] OLD PROGRESS:", oldProgress)
 
 	// measure delta
 	newTime := time.Now().UTC()
 	delta := newTime.Sub(m.App.Time).Seconds()
 
-	m.App.InfoLog.Println("[GetGuess] DURATION:", delta)
 	guess := r.Form.Get("user_guess")
 
+	m.App.InfoLog.Println("[GetGuess] OLD PROGRESS:", oldProgress)
+	m.App.InfoLog.Println("[GetGuess] DURATION:", delta)
 	m.App.InfoLog.Println("[GetGuess] USER_GUESS:", guess)
 	m.App.InfoLog.Println("[GetGuess] EXPECTED_ANSWER:", lastCardData.Answer)
 
@@ -97,8 +96,7 @@ func (m *Repository) GetGuess(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	judge := &judges.LevenshsteinJudge{CaseInsensitive: true, UmlautInsensitive: true}
-	newStatus := m.Algorithm.ComputeNewCardStatus(lastCardData, actions, judge)
+	newStatus := m.Algorithm.ComputeNewCardStatus(lastCardData, actions)
 	m.App.InfoLog.Println("[GetGuess] NEW PROGRESS:", newStatus.CardProgress)
 
 	err = m.DB.UpdateCardStatus(userID, deckID, cardID, newStatus)
@@ -112,21 +110,16 @@ func (m *Repository) GetGuess(w http.ResponseWriter, r *http.Request) {
 	if madeProgress {
 		// if right, get new card and populate template data
 		newCard, err := m.DB.GetCardToLearn(m.App.User.UserID, m.App.User.DeckID)
-		m.App.ErrorLog.Println(err)
 		if err == sql.ErrNoRows {
-			m.App.InfoLog.Println("[GetGuess] NO ROWS:", err)
 			http.Redirect(w, r, "/come-back-later", http.StatusSeeOther)
 			return
 		} else if err != nil {
 			helpers.ServerError(w, err)
-			m.App.ErrorLog.Println("while getting top card:", err)
 			return
 		} else {
-			m.App.InfoLog.Println("[GetGuess] CARD:", newCard)
 			Repo.App.User.CurrentCard = newCard
 			Repo.App.User.LastAnswer = ""
 			Repo.UpdateUserProgress()
-			m.App.InfoLog.Println("[GetGuess] NEW_PROMPT:", newCard.Prompt)
 			http.Redirect(w, r, "/learn", http.StatusTemporaryRedirect)
 		}
 	} else {
@@ -157,7 +150,6 @@ func (m *Repository) ShowCard(w http.ResponseWriter, r *http.Request) {
 			http.Redirect(w, r, "/come-back-later", http.StatusSeeOther)
 		} else if err != nil {
 			helpers.ServerError(w, err)
-			m.App.ErrorLog.Println("while getting top card:", err)
 			return
 		} else {
 			td.CardData = newCard
@@ -189,7 +181,7 @@ func (m *Repository) Home(w http.ResponseWriter, r *http.Request) {
 	userID, deckID := m.App.User.UserID, m.App.User.DeckID
 
 	// get number of cards answered correctly today
-	correct, err := m.DB.GetAnsweredCorrectlyToday(userID, deckID, &judges.LevenshsteinJudge{})
+	correct, err := m.DB.GetAnsweredCorrectlyToday(userID, deckID, m.Algorithm.GetJudge())
 	if err != nil {
 		helpers.ServerError(w, err)
 		return

@@ -88,10 +88,9 @@ func run() (*driver.DB, error) {
 	dailyGoal := 50
 	app.User = user.User{UserName: "test_user", DailyGoal: dailyGoal}
 
-	algo := algorithm.SM2Algorithm{}
+	algo := algorithm.NewSM2(true, true)      // case and umlaut insensitive judge
 	repo := handlers.NewRepo(&app, db, &algo) // create a (pointer to a) repository variable
 	handlers.NewHandlers(repo)                // set the app repo to this variable
-
 	helpers.NewHelpers(&app)
 	renders.NewRenders(&app) // link app to renders
 
