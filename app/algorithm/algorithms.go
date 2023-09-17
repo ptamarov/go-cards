@@ -5,12 +5,14 @@ import (
 
 	"github.com/ptamarov/go-cards/app/card"
 	"github.com/ptamarov/go-cards/app/history"
+	"github.com/ptamarov/go-cards/app/judges"
 )
 
 // NextCardAlgorithm is an interface that computes the
 // status of a card from a history of user actions.
 type NextCardAlgorithm interface {
 	ComputeNewCardStatus(card.MemoryCard, []history.UserAction) CardStatus
+	GetJudge() judges.Judge
 }
 
 // CardStatus tracks the status of a card.

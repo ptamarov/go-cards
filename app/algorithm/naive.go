@@ -12,7 +12,11 @@ import (
 // performed by the user. It wraps a judge that uses the Levenshtein distance to
 // judge actions.
 type NaiveAlgorithm struct {
-	judges.LevenshsteinJudge
+	judge judges.LevenshteinJudge
+}
+
+func (na *NaiveAlgorithm) GetJudge() judges.Judge {
+	return &na.judge
 }
 
 func (na *NaiveAlgorithm) ComputeNewCardStatus(c card.MemoryCard, a []history.UserAction, s CardStatus) CardStatus {
@@ -25,7 +29,7 @@ func (na *NaiveAlgorithm) ComputeNewCardStatus(c card.MemoryCard, a []history.Us
 	}
 
 	action := a[len(a)-1]
-	score := na.EvaluateUserAction(c, action)
+	score := na.judge.EvaluateUserAction(c, action)
 
 	var newCardStatus CardStatus
 	timeNowUTC := time.Now().UTC()

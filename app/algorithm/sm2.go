@@ -11,17 +11,10 @@ import (
 	"github.com/ptamarov/go-cards/app/judges"
 )
 
-func NewSM2(CaseInsensitive, UmlautInsensitive bool) sm2algorithm {
-	var new sm2algorithm
-	new.CaseInsensitive = CaseInsensitive
-	new.UmlautInsensitive = UmlautInsensitive
-	return new
-}
-
 // SM2Algorithm computes a new card status by using the "Super Memo 2" algorithm.
 // It wraps a judge that uses the Levenshtein distance to judge actions.
 type sm2algorithm struct {
-	judges.LevenshsteinJudge
+	judge judges.LevenshteinJudge
 }
 
 type sm2CardStatus struct {
@@ -30,6 +23,17 @@ type sm2CardStatus struct {
 	IsLearned  bool    `json:"is_learned"`
 	Progress   int     `json:"progress"`
 	TimesSeen  int     `json:"times_seen"`
+}
+
+func NewSM2(CaseInsensitive, UmlautInsensitive bool) sm2algorithm {
+	var new sm2algorithm
+	new.judge.CaseInsensitive = CaseInsensitive
+	new.judge.UmlautInsensitive = UmlautInsensitive
+	return new
+}
+
+func (sm2 *sm2algorithm) GetJudge() judges.Judge {
+	return &sm2.judge
 }
 
 func (s sm2CardStatus) String() string {
@@ -50,7 +54,7 @@ func (sm2 *sm2algorithm) ComputeNewCardStatus(c card.MemoryCard, a []history.Use
 }
 
 func (sm2 *sm2algorithm) ComputeActionQuality(card card.MemoryCard, action history.UserAction) int {
-	correctFactor := sm2.EvaluateUserAction(card, action)
+	correctFactor := sm2.judge.EvaluateUserAction(card, action)
 	// 	4. After each repetition assess the quality of repetition response in 0-5 grade scale.
 	return int(math.Floor(5 * correctFactor))
 }
