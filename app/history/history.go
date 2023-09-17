@@ -6,6 +6,7 @@ import (
 	"github.com/google/uuid"
 )
 
+// UserAction stores the action of a user.
 type UserAction struct {
 	UserID   uuid.UUID
 	DeckID   uuid.UUID
