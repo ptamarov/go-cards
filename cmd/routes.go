@@ -19,11 +19,11 @@ func routes(app *config.AppConfig) http.Handler {
 	mux.Get("/", handlers.Repo.Home)
 	mux.Get("/get-guess", handlers.Repo.GetGuess)
 	mux.Get("/come-back-later", handlers.Repo.ComeBackLater)
-	mux.Post("/get-guess", handlers.Repo.GetGuess)
+	mux.Get("/learn", handlers.Repo.ShowCard)
 
 	// Handle POST requests
 	mux.Post("/learn", handlers.Repo.ShowCard)
-	mux.Get("/learn", handlers.Repo.ShowCard)
+	mux.Post("/get-guess", handlers.Repo.GetGuess)
 
 	// create a file server
 	fileServer := http.FileServer(http.Dir("./static/"))
