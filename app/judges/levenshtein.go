@@ -8,11 +8,14 @@ import (
 	"github.com/texttheater/golang-levenshtein/levenshtein"
 )
 
+// LevenshteinJudge implements the Judge interface. It evaluates an guess using
+// the Levenshtein metric. By default, it is case insensitive and umlaut insensitive.
 type LevenshteinJudge struct {
 	CaseInsensitive   bool
 	UmlautInsensitive bool
 }
 
+// EvaluateUserAction computes the Levenshtein ratio between card.Answer and g.Guess, a float in [0..1].
 func (lj *LevenshteinJudge) EvaluateUserAction(card card.MemoryCard, g history.UserAction) float64 {
 	answer := card.Answer
 	guess := g.Guess
@@ -36,22 +39,23 @@ func (lj *LevenshteinJudge) EvaluateUserAction(card card.MemoryCard, g history.U
 	return levenshtein.RatioForStrings([]rune(answer), []rune(guess), options)
 }
 
-// Options for Levenshtein judge.
-var DefaultOptions = levenshtein.DefaultOptions
-
+// Matches two runes if they are equal up to case.
 func matchLowercaseInsensitive(a rune, b rune) bool {
 	return unicode.ToLower(a) == unicode.ToLower(b)
 }
 
+// Matches two runes if they are equal up to umlauts.
 func matchUmlautInsensitive(a rune, b rune) bool {
 	return removeUmlauts(a) == removeUmlauts(b)
 }
 
+// Matches two runes if they are equal up to case and umlauts.
 func matchUmlautAndCaseInsensitive(a rune, b rune) bool {
 	a, b = removeUmlauts(a), removeUmlauts(b)
 	return unicode.ToLower(a) == unicode.ToLower(b)
 }
 
+// Removes umlauts from vowels.
 func removeUmlauts(a rune) rune {
 	if newRune, ok := umlautToVowelMap[a]; ok {
 		return newRune

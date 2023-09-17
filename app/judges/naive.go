@@ -13,6 +13,8 @@ type NaiveJudge struct {
 	UmlautInsensitive bool
 }
 
+// EvaluateUserAction compares card.Answer is equal to g.Guess using strings.EqualFold. It
+// returns 1 if EqualFold reports true, and 0 otherwise.
 func (nj *NaiveJudge) EvaluateUserAction(card card.MemoryCard, g history.UserAction) float64 {
 	if strings.EqualFold(card.Answer, g.Guess) {
 		return 1.0
