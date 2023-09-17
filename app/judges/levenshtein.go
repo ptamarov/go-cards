@@ -1,0 +1,70 @@
+package judges
+
+import (
+	"unicode"
+
+	"github.com/ptamarov/go-cards/app/card"
+	"github.com/ptamarov/go-cards/app/history"
+	"github.com/texttheater/golang-levenshtein/levenshtein"
+)
+
+type LevenshteinJudge struct {
+	CaseInsensitive   bool
+	UmlautInsensitive bool
+}
+
+func (lj *LevenshteinJudge) EvaluateUserAction(card card.MemoryCard, g history.UserAction) float64 {
+	answer := card.Answer
+	guess := g.Guess
+
+	var options = levenshtein.Options{
+		InsCost: 1,
+		DelCost: 1,
+		SubCost: 2,
+		Matches: levenshtein.IdenticalRunes,
+	}
+
+	if lj.CaseInsensitive && lj.UmlautInsensitive {
+		options.Matches = matchUmlautAndCaseInsensitive
+	}
+	if lj.CaseInsensitive && !lj.UmlautInsensitive {
+		options.Matches = matchLowercaseInsensitive
+	}
+	if !lj.CaseInsensitive && lj.UmlautInsensitive {
+		options.Matches = matchUmlautInsensitive
+	}
+	return levenshtein.RatioForStrings([]rune(answer), []rune(guess), options)
+}
+
+// Options for Levenshtein judge.
+var DefaultOptions = levenshtein.DefaultOptions
+
+func matchLowercaseInsensitive(a rune, b rune) bool {
+	return unicode.ToLower(a) == unicode.ToLower(b)
+}
+
+func matchUmlautInsensitive(a rune, b rune) bool {
+	return removeUmlauts(a) == removeUmlauts(b)
+}
+
+func matchUmlautAndCaseInsensitive(a rune, b rune) bool {
+	a, b = removeUmlauts(a), removeUmlauts(b)
+	return unicode.ToLower(a) == unicode.ToLower(b)
+}
+
+func removeUmlauts(a rune) rune {
+	if newRune, ok := umlautToVowelMap[a]; ok {
+		return newRune
+	} else {
+		return a
+	}
+}
+
+var umlautToVowelMap map[rune]rune = map[rune]rune{
+	196: 65,
+	214: 79,
+	220: 85,
+	228: 97,
+	246: 111,
+	252: 117,
+}
