@@ -56,6 +56,8 @@ func (m *Repository) GetGuess(w http.ResponseWriter, r *http.Request) {
 	deckID := m.App.User.DeckID
 	cardStatus, err := m.DB.GetCardStatus(userID, deckID, cardID)
 
+	m.App.InfoLog.Println("[GetGuess] CARD STATUS:", cardStatus)
+
 	if err != nil {
 		helpers.ServerError(w, err)
 		return
@@ -70,8 +72,8 @@ func (m *Repository) GetGuess(w http.ResponseWriter, r *http.Request) {
 
 	m.App.InfoLog.Println("[GetGuess] OLD PROGRESS:", oldProgress)
 	m.App.InfoLog.Println("[GetGuess] DURATION:", delta)
-	m.App.InfoLog.Println("[GetGuess] USER_GUESS:", guess)
-	m.App.InfoLog.Println("[GetGuess] EXPECTED_ANSWER:", lastCardData.Answer)
+	m.App.InfoLog.Println("[GetGuess] USER GUESS:", guess)
+	m.App.InfoLog.Println("[GetGuess] EXPECTED ANSWER:", lastCardData.Answer)
 
 	// prepare action payload
 	newAction := history.UserAction{
@@ -97,7 +99,7 @@ func (m *Repository) GetGuess(w http.ResponseWriter, r *http.Request) {
 	}
 
 	newStatus := m.Algorithm.ComputeNewCardStatus(lastCardData, actions)
-	m.App.InfoLog.Println("[GetGuess] NEW PROGRESS:", newStatus.CardProgress)
+	m.App.InfoLog.Println("[GetGuess] NEW STATUS:", newStatus)
 
 	err = m.DB.UpdateCardStatus(userID, deckID, cardID, newStatus)
 	if err != nil {
@@ -130,11 +132,11 @@ func (m *Repository) GetGuess(w http.ResponseWriter, r *http.Request) {
 
 }
 
-// ShowCard shows the user a card and handles a post request from the user
+// ShowCard shows the user a card and handles a post request from the user.
 func (m *Repository) ShowCard(w http.ResponseWriter, r *http.Request) {
 	m.App.Time = time.Now().UTC()
 
-	// 1. Check if daily goal is reached. If reached, stop.
+	// 1. Check if daily goal is reached. If reached, redirect.
 	if m.App.User.IsDailyGoalReached() {
 		m.App.User.DailyGoalReached = true
 		http.Redirect(w, r, "/come-back-later", http.StatusSeeOther)
@@ -172,7 +174,7 @@ func (m *Repository) ShowCard(w http.ResponseWriter, r *http.Request) {
 	}
 	td.IntMap["daily_goal"] = m.App.User.DailyGoal
 	td.IntMap["correct_today"] = m.App.User.CorrectToday
-	td.FloatMap["bar_progress_perc"] = percentage(m.App.User.CorrectToday, m.App.User.DailyGoal)
+	td.FloatMap["bar_progress_perc"] = toPercentage(m.App.User.CorrectToday, m.App.User.DailyGoal)
 
 	renders.RenderTemplate(w, r, "show-card.page.tmpl", &td)
 }
@@ -265,7 +267,7 @@ func (m *Repository) PopulateTemplateWithCurrentStatistics(userID, deckID uuid.U
 	td.FloatMap["not_seen_perc"] = notSeenPerC
 	td.FloatMap["learned_perc"] = learnedPerC
 	td.FloatMap["in_progress_perc"] = progressPerC
-	td.FloatMap["bar_progress_perc"] = percentage(m.App.User.CorrectToday, m.App.User.DailyGoal)
+	td.FloatMap["bar_progress_perc"] = toPercentage(m.App.User.CorrectToday, m.App.User.DailyGoal)
 
 	return nil
 }
