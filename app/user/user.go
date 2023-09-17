@@ -18,6 +18,7 @@ type User struct {
 	DailyGoalReached bool
 }
 
+// IsDailyGoalReached checks if the user has reached the daily goal.
 func (u *User) IsDailyGoalReached() bool {
 	return u.CorrectToday >= u.DailyGoal
 }

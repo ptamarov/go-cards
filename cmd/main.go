@@ -23,8 +23,6 @@ const portNumber = ":8880"
 
 var app config.AppConfig // make it available to middleware too
 var session *scs.SessionManager
-var infoLog *log.Logger
-var errorLog *log.Logger
 
 func main() {
 	db, err := run()
@@ -33,7 +31,7 @@ func main() {
 	}
 	defer db.SQL.Close()
 
-	fmt.Printf("Starting application on port %s\n", portNumber)
+	fmt.Printf("*** Starting application on port %s ***\n", portNumber)
 
 	// serving with multiplexer
 	srv := &http.Server{
@@ -46,29 +44,23 @@ func main() {
 }
 
 func run() (*driver.DB, error) {
-	// tell app about more complex types to be stored in session
-	gob.Register(card.MemoryCard{})
-	// change this to true when in production
-	app.InProduction = false
+	gob.Register(card.MemoryCard{}) // tell app about more complex types to be stored in session
+	app.InProduction = false        // change this to true when in production
 
-	infoLog = log.New(os.Stdout, "INFO\t", log.Ldate|log.Ltime)
-	app.InfoLog = infoLog
+	////// Set up logging /////////////////////////////////////////////////////
+	app.InfoLog = log.New(os.Stdout, "INFO\t", log.Ldate|log.Ltime)
+	app.ErrorLog = log.New(os.Stdout, "ERROR\t", log.Ldate|log.Ltime|log.Lshortfile)
 
-	errorLog = log.New(os.Stdout, "ERROR\t", log.Ldate|log.Ltime|log.Lshortfile)
-	app.ErrorLog = errorLog
-
-	// setting up the session
+	////// Set up the session /////////////////////////////////////////////////
 	session = scs.New()
-	session.Lifetime = 24 * time.Hour // session lasts for 24 hours, can modify for more secure session handling
-	session.Cookie.Persist = true     // session will persist after session ends
-	session.Cookie.Secure = app.InProduction
+	session.Lifetime = 24 * time.Hour        // can modify for more secure session handling
+	session.Cookie.Persist = true            // session will persist after session ends
+	app.Session = session                    // make the session variable available to other modules
+	session.Cookie.Secure = app.InProduction // make apps secure if in production
 	session.Cookie.SameSite = http.SameSiteLaxMode
-
-	// make the session variable available to other packages
-	app.Session = session
-
 	fmt.Print("\n")
-	// connect to database
+
+	////// Connect to database ////////////////////////////////////////////////
 	app.InfoLog.Println("connecting to database...")
 	db, err := driver.ConnectSQL("host=localhost port=5432 dbname=go_cards user=ptamarov password=")
 	if err != nil {
@@ -76,29 +68,24 @@ func run() (*driver.DB, error) {
 	}
 	app.InfoLog.Println("...connected!")
 
-	tc, err := renders.CreateTemplateCache() // create the template cache
+	////// Create template caches /////////////////////////////////////////////
+	tc, err := renders.CreateTemplateCache()
 	if err != nil {
 		app.ErrorLog.Fatal("cannot create template cache")
 		return nil, err
 	}
-	app.TemplateCache = tc // assign the tc to the app configuration variable
-	app.UseCache = false
+	app.TemplateCache = tc // assign cache to the app configuration variable
+	app.UseCache = false   // but do not use it to allow template edition and reloading
 
-	// This will be handled by a log-in page in the future
-	dailyGoal := 50
-	app.User = user.User{UserName: "test_user", DailyGoal: dailyGoal}
+	////// Mock a user ////////////////////////////////////////////////////////
+	///// This will be handled by a log-in page in the future
+	app.User = user.User{UserName: "test_user", DailyGoal: 50}
 
 	algo := algorithm.NewSM2(true, true)      // case and umlaut insensitive judge
 	repo := handlers.NewRepo(&app, db, &algo) // create a (pointer to a) repository variable
 	handlers.NewHandlers(repo)                // set the app repo to this variable
-	helpers.NewHelpers(&app)
-	renders.NewRenders(&app) // link app to renders
-
-	wd, err := os.Getwd()
-	if err != nil {
-		return nil, err
-	}
-	fmt.Printf("Working directory: %s\n", wd)
+	helpers.NewHelpers(&app)                  // connect helpers
+	renders.NewRenders(&app)                  // link app to renders
 
 	return db, nil
 }
