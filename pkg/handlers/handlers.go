@@ -206,6 +206,7 @@ func (m *Repository) Home(w http.ResponseWriter, r *http.Request) {
 	renders.RenderTemplate(w, r, "home.page.tmpl", &td)
 }
 
+// ComeBackLater alerts the user that there no more cards to learn for the day.
 func (m *Repository) ComeBackLater(w http.ResponseWriter, r *http.Request) {
 	td := models.TemplateData{}
 	td.BoolMap = make(map[string]bool)
@@ -213,6 +214,7 @@ func (m *Repository) ComeBackLater(w http.ResponseWriter, r *http.Request) {
 	renders.RenderTemplate(w, r, "come-back-later.page.tmpl", &td)
 }
 
+// UpdateUserProgress updates the user progress.
 func (m *Repository) UpdateUserProgress() {
 	m.App.User.CorrectToday++
 }
@@ -270,4 +272,13 @@ func (m *Repository) PopulateTemplateWithCurrentStatistics(userID, deckID uuid.U
 	td.FloatMap["bar_progress_perc"] = toPercentage(m.App.User.CorrectToday, m.App.User.DailyGoal)
 
 	return nil
+}
+
+// Summary shows a summary of the learning session.
+func (m *Repository) Summary(w http.ResponseWriter, r *http.Request) {
+	// Display:
+	// Cards answered
+	// Time spent
+	// New words
+	// Correct rate
 }
