@@ -1,8 +1,6 @@
 package algorithm
 
 import (
-	"fmt"
-	"log"
 	"time"
 
 	"github.com/ptamarov/go-cards/app/card"
@@ -11,36 +9,30 @@ import (
 )
 
 // NaiveAlgorithm computes a new card status by only looking at the last action
-// performed by the user.
+// performed by the user. It wraps a judge that uses the Levenshtein distance to
+// judge actions.
 type NaiveAlgorithm struct {
 	judges.LevenshsteinJudge
 }
 
-func (na *NaiveAlgorithm) ComputeNewCardStatus(
-	memCard card.MemoryCard,
-	actions []history.UserAction,
-	judge judges.Judge,
-	oldStatus card.CardStatus,
-) card.CardStatus {
-
+func (na *NaiveAlgorithm) ComputeNewCardStatus(c card.MemoryCard, a []history.UserAction, s CardStatus) CardStatus {
 	oneMinute := 60 * time.Second
 	oneHour := 60 * oneMinute
 	oneDay := 24 * oneHour
 
-	if len(actions) == 0 {
-		fmt.Println("ALGORITHM: no actions to evaluate")
-		return oldStatus
+	if len(a) == 0 { // if no actions then status is unchanged
+		return s
 	}
-	action := actions[len(actions)-1]
-	score := na.EvaluateUserAction(memCard, action)
 
-	log.Println("score is", score)
-	var newCardStatus card.CardStatus
+	action := a[len(a)-1]
+	score := na.EvaluateUserAction(c, action)
 
+	var newCardStatus CardStatus
 	timeNowUTC := time.Now().UTC()
+
 	if score == 1.0 {
 		newCardStatus.NextAvailableDate = timeNowUTC.Add(oneDay)
-		newCardStatus.CardProgress = oldStatus.CardProgress + 1
+		newCardStatus.CardProgress = s.CardProgress + 1
 		if newCardStatus.CardProgress == 5 {
 			newCardStatus.CardLearned = true
 		}

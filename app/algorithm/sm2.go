@@ -1,6 +1,7 @@
 package algorithm
 
 import (
+	"encoding/json"
 	"fmt"
 	"math"
 	"time"
@@ -10,99 +11,109 @@ import (
 	"github.com/ptamarov/go-cards/app/judges"
 )
 
-type SM2Algorithm struct {
+func NewSM2(CaseInsensitive, UmlautInsensitive bool) sm2algorithm {
+	var new sm2algorithm
+	new.CaseInsensitive = CaseInsensitive
+	new.UmlautInsensitive = UmlautInsensitive
+	return new
+}
+
+// SM2Algorithm computes a new card status by using the "Super Memo 2" algorithm.
+// It wraps a judge that uses the Levenshtein distance to judge actions.
+type sm2algorithm struct {
 	judges.LevenshsteinJudge
 }
 
-type SM2CardStatus struct {
-	easeFactor float64
-	interval   int
-	learned    bool
-	progress   int
-	timesSeen  int
+type sm2CardStatus struct {
+	EaseFactor float64 `json:"ease_factor"`
+	Interval   int     `json:"interval"`
+	IsLearned  bool    `json:"is_learned"`
+	Progress   int     `json:"progress"`
+	TimesSeen  int     `json:"times_seen"`
 }
 
-func (sm2 *SM2Algorithm) ComputeNewCardStatus(c card.MemoryCard, a []history.UserAction, j judges.Judge) card.CardStatus {
-	var newCardStatus card.CardStatus
-	fmt.Printf("[SM2-Algorithm] Computing new status from %d past actions\n", len(a))
-	status := DetermineStatus(j, c, a)
-	newCardStatus.CardProgress = status.progress
-	newCardStatus.CardLearned = status.learned
+func (s sm2CardStatus) String() string {
+	bytes, _ := json.MarshalIndent(s, " ", "\t")
+	return fmt.Sprint(string(bytes))
+}
 
-	delta := time.Duration(status.interval) * time.Minute
+func (sm2 *sm2algorithm) ComputeNewCardStatus(c card.MemoryCard, a []history.UserAction) CardStatus {
+	var newCardStatus CardStatus
+	status := sm2.DetermineStatus(c, a)
+	newCardStatus.CardProgress = status.Progress
+	newCardStatus.CardLearned = status.IsLearned
+	delta := time.Duration(status.Interval) * time.Minute
 	newCardStatus.NextAvailableDate = time.Now().UTC().Add(delta)
-	newCardStatus.TimesSeen = status.timesSeen
+	newCardStatus.TimesSeen = status.TimesSeen
 	return newCardStatus
 
 }
 
-func ComputeActionQuality(j judges.Judge, card card.MemoryCard, action history.UserAction) int {
-	correctFactor := j.EvaluateUserAction(card, action)
+func (sm2 *sm2algorithm) ComputeActionQuality(card card.MemoryCard, action history.UserAction) int {
+	correctFactor := sm2.EvaluateUserAction(card, action)
 	// 	4. After each repetition assess the quality of repetition response in 0-5 grade scale.
 	return int(math.Floor(5 * correctFactor))
 }
 
-func ComputeNextStatus(guessQuality int, oldStatus SM2CardStatus) SM2CardStatus {
-	// 3. Repeat items using the following intervals:
-	// I(1):= 1
-	// I(2):= 6
-	// for n>2 : I(n) = I(n-1)*EaseFactor
-	// If interval is a fraction, round it up to the nearest integer.
-	fmt.Println("[SM2-Algorithm] OLD STATUS:", oldStatus)
-	var newStatus SM2CardStatus
-
-	// update progress and times seen if quality is 5
-	if guessQuality == 5 {
-		newStatus.timesSeen = oldStatus.timesSeen + 1
-		newStatus.progress = oldStatus.progress + 1
-		if newStatus.progress >= 5 {
-			// update learned if progress reaches 5
-			newStatus.learned = true
-		}
+func (sm2 *sm2algorithm) ComputeNewEaseFactorFromQuality(oldEaseFactor float64, quality int) float64 {
+	q := float64(quality)
+	newEaseFactor := oldEaseFactor - 0.8 + 0.28*q - 0.02*q*q
+	newEaseFactor = float64(int(newEaseFactor*100)) / 100
+	if newEaseFactor < 1.3 {
+		newEaseFactor = 1.3
 	}
-
-	// update ease factor
-	q := float64(guessQuality)
-
-	newStatus.easeFactor = oldStatus.easeFactor - 0.8 + 0.28*q - 0.02*q*q
 	// f(q) = - 0.8 + 0.28*q - 0.02*q*q is zero at q = 4.
 	// It is negative in [0,4)
 	// It is positive and increasing in (4,7)
 	// It has a global maximum at q = 7.
+	return newEaseFactor
+}
 
-	if newStatus.easeFactor < 1.3 {
-		newStatus.easeFactor = 1.3
-	}
+func (sm2 *sm2algorithm) ComputeNextStatus(guessQuality int, oldStatus sm2CardStatus) sm2CardStatus {
+	// 3. Repeat items using the following intervals:
+	// I(1):= 1, I(2):= 6
+	// for n > 2 : I(n) = I(n-1) * EaseFactor
+	// If interval is a fraction, round it up to the nearest integer.
+	var newStatus sm2CardStatus
 
-	// update interval
-	switch newStatus.timesSeen {
-	case 0:
-		newStatus.interval = 1
-	case 1:
-		newStatus.interval = 6
-	default:
-		switch guessQuality >= 3 {
-		case false:
-			newStatus.interval = 1
-			newStatus.easeFactor = oldStatus.easeFactor
-		default:
-			newStatus.interval = int(math.Ceil(float64(oldStatus.interval) * newStatus.easeFactor))
+	// update progress if quality is 5 (perfect guess)
+	if guessQuality == 5 {
+		newStatus.Progress = oldStatus.Progress + 1
+		if newStatus.Progress >= 5 {
+			newStatus.IsLearned = true // update to learned if progress reaches 5
 		}
 	}
-	fmt.Println("[SM2-Algorithm] NEW STATUS:", newStatus)
+
+	// update ease factor
+	newStatus.EaseFactor = sm2.ComputeNewEaseFactorFromQuality(oldStatus.EaseFactor, guessQuality)
+
+	// update intervalx
+	switch newStatus.TimesSeen {
+	case 0:
+		newStatus.Interval = 1
+	case 1:
+		newStatus.Interval = 6
+	default:
+		if guessQuality >= 3 {
+			newStatus.Interval = int(math.Ceil(float64(oldStatus.Interval) * newStatus.EaseFactor))
+		} else {
+			newStatus.Interval = 1
+			newStatus.EaseFactor = oldStatus.EaseFactor
+		}
+	}
+	// times seen goes up by one
+	newStatus.TimesSeen = oldStatus.TimesSeen + 1
 	return newStatus
 }
 
 // Processes a list of guesses corresponding to a card, ouputs the interval
 // value obtained by processing the data according to the SM-2 algorithm."""
-func DetermineStatus(judge judges.Judge, card card.MemoryCard, actions []history.UserAction) SM2CardStatus {
-	var currentStatus SM2CardStatus
-	currentStatus.easeFactor = 2.5 // 2. With all items associate an EaseFactor equal to 2.5.
-
+func (sm2 *sm2algorithm) DetermineStatus(card card.MemoryCard, actions []history.UserAction) sm2CardStatus {
+	var currentStatus sm2CardStatus
+	currentStatus.EaseFactor = 2.5 // 2. With all items associate an EaseFactor equal to 2.5.
 	for _, action := range actions {
-		quality := ComputeActionQuality(judge, card, action)
-		fmt.Printf("SM2: for %s against %s, quality: %d", card.Answer, action.Guess, quality)
-		currentStatus = ComputeNextStatus(quality, currentStatus)
+		quality := sm2.ComputeActionQuality(card, action)
+		currentStatus = sm2.ComputeNextStatus(quality, currentStatus)
 	}
 	return currentStatus
 }

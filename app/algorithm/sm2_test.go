@@ -1,6 +1,8 @@
 package algorithm
 
-import "testing"
+import (
+	"testing"
+)
 
 func TestComputeNextStatus(t *testing.T) {
 
