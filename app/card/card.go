@@ -4,7 +4,6 @@ import (
 	"errors"
 	"regexp"
 	"strings"
-	"time"
 
 	"github.com/google/uuid"
 )
@@ -18,14 +17,6 @@ type MemoryCard struct {
 	Prompt            string    `json:"prompt"`             // a prompt must be a sentence with a unique *marked* word to learn
 	PromptTranslation string    `json:"prompt_translation"` // translation of the prompt in the user's language
 	Answer            string    `json:"answer"`             // the word to learn
-}
-
-// CardStatus tracks the status of a card
-type CardStatus struct {
-	NextAvailableDate time.Time
-	TimesSeen         int
-	CardLearned       bool
-	CardProgress      int // integer between -1 and 5, -1: inactive
 }
 
 func GetWordToLearnFromPrompt(prompt string) (string, error) {
