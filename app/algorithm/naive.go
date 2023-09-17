@@ -9,8 +9,7 @@ import (
 )
 
 // NaiveAlgorithm computes a new card status by only looking at the last action
-// performed by the user. It wraps a judge that uses the Levenshtein distance to
-// judge actions.
+// performed by the user.
 type NaiveAlgorithm struct {
 	judge judges.LevenshteinJudge
 }
@@ -19,6 +18,7 @@ func (na *NaiveAlgorithm) GetJudge() judges.Judge {
 	return &na.judge
 }
 
+// ComputeNewCardStatus computes the new status of a card by evaluating the last action performed.
 func (na *NaiveAlgorithm) ComputeNewCardStatus(c card.MemoryCard, a []history.UserAction, s CardStatus) CardStatus {
 	oneMinute := 60 * time.Second
 	oneHour := 60 * oneMinute
