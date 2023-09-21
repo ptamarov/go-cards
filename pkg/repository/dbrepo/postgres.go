@@ -225,6 +225,7 @@ func (m *postgresDBRepo) GetAllActionsForCard(userID, deckID, cardID uuid.UUID) 
 	WHERE 	user_id = $1
 	AND 	deck_id = $2
 	AND 	card_id = $3
+	ORDER BY created_at ASC
 	`
 
 	rows, err := m.DB.Query(query, userID, deckID, cardID)

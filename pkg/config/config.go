@@ -21,4 +21,5 @@ type AppConfig struct {
 	NotFresh        bool
 	Time            time.Time
 	AuthKey         string
+	AlreadyAnswered bool
 }

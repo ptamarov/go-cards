@@ -85,32 +85,61 @@ func (m *Repository) GetGuess(w http.ResponseWriter, r *http.Request) {
 		Date:     time.Now().UTC(),
 	}
 
-	// record action to database
-	err = m.DB.RecordAction(newAction)
-	if err != nil {
-		helpers.ServerError(w, err)
-		return
-	}
+	metric := m.Algorithm.GetJudge().EvaluateUserAction(lastCardData, newAction)
 
-	actions, err := m.DB.GetAllActionsForCard(userID, deckID, cardID)
-	if err != nil {
-		helpers.ServerError(w, err)
-		return
-	}
+	if metric != 1.0 {
+		// incorrect answer so dump
+		err = m.DB.RecordAction(newAction)
+		if err != nil {
+			helpers.ServerError(w, err)
+			return
+		}
 
-	newStatus := m.Algorithm.ComputeNewCardStatus(lastCardData, actions)
-	m.App.InfoLog.Println("[GetGuess] NEW STATUS:", newStatus)
+		actions, err := m.DB.GetAllActionsForCard(userID, deckID, cardID)
+		if err != nil {
+			helpers.ServerError(w, err)
+			return
+		}
 
-	err = m.DB.UpdateCardStatus(userID, deckID, cardID, newStatus)
-	if err != nil {
-		helpers.ServerError(w, err)
-		return
-	}
+		newStatus := m.Algorithm.ComputeNewCardStatus(lastCardData, actions)
+		m.App.InfoLog.Println("[GetGuess] NEW STATUS:", newStatus)
 
-	madeProgress := (newStatus.CardProgress > oldProgress)
+		err = m.DB.UpdateCardStatus(userID, deckID, cardID, newStatus)
+		if err != nil {
+			helpers.ServerError(w, err)
+			return
+		}
 
-	if madeProgress {
-		// if right, get new card and populate template data
+		// show card again
+		m.App.User.CurrentCard = lastCardData
+		m.App.User.LastAnswer = lastCardData.Answer
+		m.App.AlreadyAnswered = true // mark card as answered
+		http.Redirect(w, r, "/learn", http.StatusTemporaryRedirect)
+	} else {
+		if !m.App.AlreadyAnswered {
+			// dump if card is fresh and correctly answered
+			err = m.DB.RecordAction(newAction)
+			if err != nil {
+				helpers.ServerError(w, err)
+				return
+			}
+
+			actions, err := m.DB.GetAllActionsForCard(userID, deckID, cardID)
+			if err != nil {
+				helpers.ServerError(w, err)
+				return
+			}
+
+			newStatus := m.Algorithm.ComputeNewCardStatus(lastCardData, actions)
+			m.App.InfoLog.Println("[GetGuess] NEW STATUS:", newStatus)
+
+			err = m.DB.UpdateCardStatus(userID, deckID, cardID, newStatus)
+			if err != nil {
+				helpers.ServerError(w, err)
+				return
+			}
+		}
+		// get new card and populate template data
 		newCard, err := m.DB.GetCardToLearn(m.App.User.UserID, m.App.User.DeckID)
 		if err == sql.ErrNoRows {
 			http.Redirect(w, r, "/come-back-later", http.StatusSeeOther)
@@ -119,15 +148,13 @@ func (m *Repository) GetGuess(w http.ResponseWriter, r *http.Request) {
 			helpers.ServerError(w, err)
 			return
 		} else {
-			Repo.App.User.CurrentCard = newCard
-			Repo.App.User.LastAnswer = ""
-			Repo.UpdateUserProgress()
+			m.App.AlreadyAnswered = false
+			m.App.User.CurrentCard = newCard
+			m.App.User.LastAnswer = ""
+			m.UpdateUserProgress()
 			http.Redirect(w, r, "/learn", http.StatusTemporaryRedirect)
+			return
 		}
-	} else {
-		Repo.App.User.CurrentCard = lastCardData
-		Repo.App.User.LastAnswer = lastCardData.Answer
-		http.Redirect(w, r, "/learn", http.StatusTemporaryRedirect)
 	}
 
 }
