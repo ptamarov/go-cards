@@ -8,13 +8,13 @@ import (
 	"github.com/google/uuid"
 	"github.com/ptamarov/go-cards/app/algorithm"
 	"github.com/ptamarov/go-cards/app/history"
-	"github.com/ptamarov/go-cards/pkg/config"
-	"github.com/ptamarov/go-cards/pkg/driver"
-	"github.com/ptamarov/go-cards/pkg/helpers"
-	"github.com/ptamarov/go-cards/pkg/models"
-	"github.com/ptamarov/go-cards/pkg/renders"
-	"github.com/ptamarov/go-cards/pkg/repository"
-	"github.com/ptamarov/go-cards/pkg/repository/dbrepo"
+	"github.com/ptamarov/go-cards/internal/config"
+	"github.com/ptamarov/go-cards/internal/driver"
+	"github.com/ptamarov/go-cards/internal/helpers"
+	"github.com/ptamarov/go-cards/internal/models"
+	"github.com/ptamarov/go-cards/internal/renders"
+	"github.com/ptamarov/go-cards/internal/repository"
+	"github.com/ptamarov/go-cards/internal/repository/dbrepo"
 )
 
 // time conversion

@@ -12,11 +12,11 @@ import (
 	"github.com/ptamarov/go-cards/app/algorithm"
 	"github.com/ptamarov/go-cards/app/card"
 	"github.com/ptamarov/go-cards/app/user"
-	"github.com/ptamarov/go-cards/pkg/config"
-	"github.com/ptamarov/go-cards/pkg/driver"
-	"github.com/ptamarov/go-cards/pkg/handlers"
-	"github.com/ptamarov/go-cards/pkg/helpers"
-	"github.com/ptamarov/go-cards/pkg/renders"
+	"github.com/ptamarov/go-cards/internal/config"
+	"github.com/ptamarov/go-cards/internal/driver"
+	"github.com/ptamarov/go-cards/internal/handlers"
+	"github.com/ptamarov/go-cards/internal/helpers"
+	"github.com/ptamarov/go-cards/internal/renders"
 )
 
 const portNumber = ":8880"

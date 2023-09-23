@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"runtime/debug"
 
-	"github.com/ptamarov/go-cards/pkg/config"
+	"github.com/ptamarov/go-cards/internal/config"
 )
 
 var app *config.AppConfig // local variable to access app wide config

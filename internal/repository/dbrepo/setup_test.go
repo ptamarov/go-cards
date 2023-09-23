@@ -6,9 +6,9 @@ import (
 	"os"
 	"testing"
 
-	"github.com/ptamarov/go-cards/pkg/config"
-	"github.com/ptamarov/go-cards/pkg/driver"
-	"github.com/ptamarov/go-cards/pkg/helpers"
+	"github.com/ptamarov/go-cards/internal/config"
+	"github.com/ptamarov/go-cards/internal/driver"
+	"github.com/ptamarov/go-cards/internal/helpers"
 )
 
 var TestDB *postgresDBRepo

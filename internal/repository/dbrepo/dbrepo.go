@@ -3,8 +3,8 @@ package dbrepo
 import (
 	"database/sql"
 
-	"github.com/ptamarov/go-cards/pkg/config"
-	"github.com/ptamarov/go-cards/pkg/repository"
+	"github.com/ptamarov/go-cards/internal/config"
+	"github.com/ptamarov/go-cards/internal/repository"
 )
 
 // All structs that satisfy DatabaseRepository go here
