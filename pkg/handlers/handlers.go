@@ -88,7 +88,7 @@ func (m *Repository) GetGuess(w http.ResponseWriter, r *http.Request) {
 	metric := m.Algorithm.GetJudge().EvaluateUserAction(lastCardData, newAction)
 
 	if metric != 1.0 {
-		// incorrect answer so dump
+		// incorrect answer so dump (drop set to 0)
 		err = m.DB.RecordAction(newAction)
 		if err != nil {
 			helpers.ServerError(w, err)
@@ -116,28 +116,30 @@ func (m *Repository) GetGuess(w http.ResponseWriter, r *http.Request) {
 		m.App.AlreadyAnswered = true // mark card as answered
 		http.Redirect(w, r, "/learn", http.StatusTemporaryRedirect)
 	} else {
-		if !m.App.AlreadyAnswered {
-			// dump if card is fresh and correctly answered
-			err = m.DB.RecordAction(newAction)
-			if err != nil {
-				helpers.ServerError(w, err)
-				return
-			}
+		if m.App.AlreadyAnswered {
+			// drop correct guess from stats since user saw answer
+			newAction.Drop = 1
+		}
+		// dump if card is fresh and correctly answered
+		err = m.DB.RecordAction(newAction)
+		if err != nil {
+			helpers.ServerError(w, err)
+			return
+		}
 
-			actions, err := m.DB.GetAllActionsForCard(userID, deckID, cardID)
-			if err != nil {
-				helpers.ServerError(w, err)
-				return
-			}
+		actions, err := m.DB.GetAllActionsForCard(userID, deckID, cardID)
+		if err != nil {
+			helpers.ServerError(w, err)
+			return
+		}
 
-			newStatus := m.Algorithm.ComputeNewCardStatus(lastCardData, actions)
-			m.App.InfoLog.Println("[GetGuess] NEW STATUS:", newStatus)
+		newStatus := m.Algorithm.ComputeNewCardStatus(lastCardData, actions)
+		m.App.InfoLog.Println("[GetGuess] NEW STATUS:", newStatus)
 
-			err = m.DB.UpdateCardStatus(userID, deckID, cardID, newStatus)
-			if err != nil {
-				helpers.ServerError(w, err)
-				return
-			}
+		err = m.DB.UpdateCardStatus(userID, deckID, cardID, newStatus)
+		if err != nil {
+			helpers.ServerError(w, err)
+			return
 		}
 		// get new card and populate template data
 		newCard, err := m.DB.GetCardToLearn(m.App.User.UserID, m.App.User.DeckID)

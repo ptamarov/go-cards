@@ -201,14 +201,22 @@ func (m *postgresDBRepo) UpdateCardStatus(userID, deckID, cardID uuid.UUID, stat
 		SET 	date_ready = $1, card_learned = $2, card_progress = $3, times_seen = $7
 		WHERE 	user_id = $4
 		AND		card_id = $5
-		AND 	deck_id = $6`
+		AND 	deck_id = $6
+		`
 
 	var cardLearned int
 	if status.CardLearned {
 		cardLearned = 1
 	}
 
-	_, err := m.DB.Exec(query, dateString, cardLearned, status.CardProgress, userID, cardID, deckID, status.TimesSeen)
+	_, err := m.DB.Exec(query,
+		dateString,
+		cardLearned,
+		status.CardProgress,
+		userID,
+		cardID,
+		deckID,
+		status.TimesSeen)
 	if err != nil {
 		return err
 	}
@@ -218,13 +226,13 @@ func (m *postgresDBRepo) UpdateCardStatus(userID, deckID, cardID uuid.UUID, stat
 // GetAllActionsForCard gets all the actions performed by a user, in the given deck, for the given card.
 func (m *postgresDBRepo) GetAllActionsForCard(userID, deckID, cardID uuid.UUID) ([]history.UserAction, error) {
 	var actions []history.UserAction
-
 	query := `
 	SELECT 	guess, duration, created_at
 	FROM 	history
 	WHERE 	user_id = $1
 	AND 	deck_id = $2
 	AND 	card_id = $3
+	AND 	drop_action = 0
 	ORDER BY created_at ASC
 	`
 
@@ -418,8 +426,8 @@ func (m *postgresDBRepo) RecordAction(action history.UserAction) error {
 	defer cancel()
 
 	statement := `
-	INSERT INTO history (user_id, deck_id, card_id, guess, duration, created_at) 
-	VALUES ($1, $2, $3, $4, $5, $6)`
+	INSERT INTO history (user_id, deck_id, card_id, guess, duration, created_at, drop_action) 
+	VALUES ($1, $2, $3, $4, $5, $6, $7)`
 
 	dateString := action.Date.Format(GO_TIMESTAMP_FORMAT)
 
@@ -430,6 +438,7 @@ func (m *postgresDBRepo) RecordAction(action history.UserAction) error {
 		action.Guess,
 		action.Duration,
 		dateString,
+		action.Drop,
 	)
 	if err != nil {
 		return err

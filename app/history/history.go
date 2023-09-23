@@ -14,4 +14,5 @@ type UserAction struct {
 	Guess    string
 	Duration float64
 	Date     time.Time
+	Drop     int // 1 if correct after seeing answer, 0 else
 }
