@@ -5,3 +5,4 @@ todos.md
 .vscode
 *.DS_Store
 *.sql
+local-*
