@@ -47,7 +47,7 @@ func TestMain(m *testing.M) {
 		log.Fatal("main; cannot create template cache")
 	}
 	app.TemplateCache = tc
-	app.UseCache = true
+	app.UseTemplateCache = true
 
 	repo := NewTestRepo(&app, &driver.DB{})
 	NewHandlers(repo)

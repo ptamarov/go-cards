@@ -30,7 +30,7 @@ func AddDefaultTemplateData(td *models.TemplateData, r *http.Request) *models.Te
 func RenderTemplate(w http.ResponseWriter, r *http.Request, tmpl string, td *models.TemplateData) {
 	var tc map[string]*template.Template
 
-	if app.UseCache {
+	if app.UseTemplateCache {
 		tc = app.TemplateCache
 	} else {
 		var err error
