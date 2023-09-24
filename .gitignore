@@ -6,3 +6,5 @@ todos.md
 *.DS_Store
 *.sql
 local-*
+Makefile 
+*.out
