@@ -8,18 +8,22 @@ import (
 	"github.com/ptamarov/go-cards/app/judges"
 )
 
-// NaiveAlgorithm computes a new card status by only looking at the last action
+// naiveAlgorithm computes a new card status by only looking at the last action
 // performed by the user.
-type NaiveAlgorithm struct {
-	judge judges.LevenshteinJudge
+type naiveAlgorithm struct {
+	judge judges.Judge
 }
 
-func (na *NaiveAlgorithm) GetJudge() judges.Judge {
-	return &na.judge
+func NewNaiveAlgorithm(j judges.Judge) naiveAlgorithm {
+	return naiveAlgorithm{judge: j}
+}
+
+func (na *naiveAlgorithm) GetJudge() judges.Judge {
+	return na.judge
 }
 
 // ComputeNewCardStatus computes the new status of a card by evaluating the last action performed.
-func (na *NaiveAlgorithm) ComputeNewCardStatus(c card.MemoryCard, a []history.UserAction, s CardStatus) CardStatus {
+func (na *naiveAlgorithm) ComputeNewCardStatus(c card.MemoryCard, a []history.UserAction, s CardStatus) CardStatus {
 	oneMinute := 60 * time.Second
 	oneHour := 60 * oneMinute
 	oneDay := 24 * oneHour

@@ -12,13 +12,12 @@ import (
 	"github.com/ptamarov/go-cards/app/judges"
 )
 
-// SM2Algorithm implements the NextCardAlgorithm interface. It determines a card status
-// by using the "Super Memo 2" algorithm.
+// Implements the NextCardAlgorithm interface. Determines a card status by using the "Super Memo 2" algorithm.
 type sm2algorithm struct {
-	judge judges.LevenshteinJudge
+	judge judges.Judge
 }
 
-// SM2CardStatus holds the status of a card with the sm2 parameters:
+// Holds the status of a card with the sm2 parameters:
 //
 //   - EaseFactor: the ease with which the user remembers the card.
 //
@@ -37,18 +36,18 @@ type SM2CardStatus struct {
 	TimesSeen  int     `json:"times_seen"`
 }
 
-// NewSM2 returns a new SM2 Algorithm implementing the NextCardAlgorithm interface.
+// Returns a new SM2 Algorithm implementing the NextCardAlgorithm interface.
 // Its judge is a LevenshteinJudge, which compares guesses using the Levenshtein distance.
 func NewSM2(CaseInsensitive, UmlautInsensitive bool) sm2algorithm {
 	var new sm2algorithm
-	new.judge.CaseInsensitive = CaseInsensitive
-	new.judge.UmlautInsensitive = UmlautInsensitive
+	judge := judges.NewLevenshteinJudge(CaseInsensitive, UmlautInsensitive)
+	new.judge = &judge
 	return new
 }
 
-// GetJudge returns a LevenshteinJudge.
+// Returns the algorithm's judge.
 func (sm2 *sm2algorithm) GetJudge() judges.Judge {
-	return &sm2.judge
+	return sm2.judge
 }
 
 func (s SM2CardStatus) String() string {
@@ -56,7 +55,7 @@ func (s SM2CardStatus) String() string {
 	return fmt.Sprint(string(bytes))
 }
 
-// ComputeNewCardStatus computes a card status for a card from a list of actions.
+// Computes a card status for a card from a list of user actions.
 func (sm2 *sm2algorithm) ComputeNewCardStatus(c card.MemoryCard, a []history.UserAction) CardStatus {
 	var newCardStatus CardStatus
 	status := sm2.DetermineStatus(c, a)
@@ -79,14 +78,14 @@ func (sm2 *sm2algorithm) ComputeNewCardStatus(c card.MemoryCard, a []history.Use
 
 }
 
-// ComputeActionQuality computes the quality of an action taken for a card. The quality is an integer from 0 to 5.
+// Computes the quality of an action taken for a card. The quality is an integer from 0 to 5.
 func (sm2 *sm2algorithm) ComputeActionQuality(card card.MemoryCard, action history.UserAction) int {
 	correctFactor := sm2.judge.EvaluateUserAction(card, action)
 	// 	4. After each repetition assess the quality of repetition response in 0-5 grade scale.
 	return int(math.Floor(5 * correctFactor))
 }
 
-// ComputeNewEaseFactorFromQuality computes a new ease factor from an old one and a guess quality.
+// Computes a new ease factor from an old one and a guess quality.
 func (sm2 *sm2algorithm) ComputeNewEaseFactorFromQuality(oldEaseFactor float64, quality int) float64 {
 	q := float64(quality)
 	newEaseFactor := oldEaseFactor - 0.8 + 0.28*q - 0.02*q*q
@@ -101,7 +100,7 @@ func (sm2 *sm2algorithm) ComputeNewEaseFactorFromQuality(oldEaseFactor float64, 
 	return newEaseFactor
 }
 
-// ComputeNextStatus computes the a SM2 status of a card from a previous status and a guess quality.
+// Computes the a SM2 status of a card from a previous status and a guess quality.
 func (sm2 *sm2algorithm) ComputeNextStatus(guessQuality int, oldStatus SM2CardStatus) SM2CardStatus {
 	// 3. Repeat items using the following intervals:
 	// I(1):= 1, I(2):= 6
@@ -152,7 +151,7 @@ func (sm2 *sm2algorithm) ComputeNextStatus(guessQuality int, oldStatus SM2CardSt
 	return newStatus
 }
 
-// DetermineStatus returns an SM2 card status from a list of guesses corresponding to a card.
+// Returns an sm2 card status from a list of guesses corresponding to a card.
 func (sm2 *sm2algorithm) DetermineStatus(card card.MemoryCard, actions []history.UserAction) SM2CardStatus {
 	var currentStatus SM2CardStatus
 	currentStatus.EaseFactor = 2.5 // 2. With all items associate an EaseFactor equal to 2.5.

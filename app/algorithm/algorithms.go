@@ -8,8 +8,7 @@ import (
 	"github.com/ptamarov/go-cards/app/judges"
 )
 
-// NextCardAlgorithm is an interface that computes the
-// status of a card from a history of user actions.
+// NextCardAlgorithm is an interface that computes the status of a card from a history of user actions.
 type NextCardAlgorithm interface {
 	ComputeNewCardStatus(card.MemoryCard, []history.UserAction) CardStatus
 	GetJudge() judges.Judge
