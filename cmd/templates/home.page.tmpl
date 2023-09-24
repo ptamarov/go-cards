@@ -86,7 +86,7 @@
                 <div class="card-body">
                 <h5 class="card-title sansMedium">Daily progress</h5>
                     <div class="row p-2 sansSmall text-center">
-                        Progress: {{ index .IntMap "correct_today" }} of {{ index .IntMap "daily_goal" }}   
+                        Progress: {{ index .IntMap "answered_today" }} of {{ index .IntMap "daily_goal" }}   
                     </div>
                     <div class="row p-1 text-center">
                         <div class="progress" style="padding-right: 0; padding-left: 0">
@@ -94,7 +94,7 @@
                                 role="progressbar" 
                                 aria-label="inProgress" 
                                 style='width: {{ index .FloatMap "bar_progress_perc" }}%'
-                                aria-valuenow='{{ index .IntMap "correct_today" }}'
+                                aria-valuenow='{{ index .IntMap "answered_today" }}'
                                 aria-valuemin="0" 
                                 aria-valuemax='{{ index .IntMap "daily_goal" }}'>
                             </div>
