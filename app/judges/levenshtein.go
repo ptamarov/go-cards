@@ -8,15 +8,19 @@ import (
 	"github.com/texttheater/golang-levenshtein/levenshtein"
 )
 
-// LevenshteinJudge implements the Judge interface. It evaluates an guess using
+// levenshteinJudge implements the Judge interface. It evaluates an guess using
 // the Levenshtein metric. By default, it is case insensitive and umlaut insensitive.
-type LevenshteinJudge struct {
+type levenshteinJudge struct {
 	CaseInsensitive   bool
 	UmlautInsensitive bool
 }
 
+func NewLevenshteinJudge(caseInsensitive, umlautInsensitive bool) levenshteinJudge {
+	return levenshteinJudge{CaseInsensitive: caseInsensitive, UmlautInsensitive: umlautInsensitive}
+}
+
 // EvaluateUserAction computes the Levenshtein ratio between card.Answer and g.Guess, a float in [0..1].
-func (lj *LevenshteinJudge) EvaluateUserAction(card card.MemoryCard, g history.UserAction) float64 {
+func (lj *levenshteinJudge) EvaluateUserAction(card card.MemoryCard, g history.UserAction) float64 {
 	answer := card.Answer
 	guess := g.Guess
 
@@ -31,7 +35,7 @@ func (lj *LevenshteinJudge) EvaluateUserAction(card card.MemoryCard, g history.U
 		options.Matches = matchUmlautAndCaseInsensitive
 	}
 	if lj.CaseInsensitive && !lj.UmlautInsensitive {
-		options.Matches = matchLowercaseInsensitive
+		options.Matches = matchCaseInsensitive
 	}
 	if !lj.CaseInsensitive && lj.UmlautInsensitive {
 		options.Matches = matchUmlautInsensitive
@@ -40,7 +44,7 @@ func (lj *LevenshteinJudge) EvaluateUserAction(card card.MemoryCard, g history.U
 }
 
 // Matches two runes if they are equal up to case.
-func matchLowercaseInsensitive(a rune, b rune) bool {
+func matchCaseInsensitive(a rune, b rune) bool {
 	return unicode.ToLower(a) == unicode.ToLower(b)
 }
 
