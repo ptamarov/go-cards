@@ -74,8 +74,8 @@ func run() (*driver.DB, error) {
 		app.ErrorLog.Fatal("cannot create template cache")
 		return nil, err
 	}
-	app.TemplateCache = tc // assign cache to the app configuration variable
-	app.UseCache = false   // but do not use it to allow template edition and reloading
+	app.TemplateCache = tc       // assign cache to the app configuration variable
+	app.UseTemplateCache = false // but do not use it to allow template edition and reloading
 
 	////// Mock a user ////////////////////////////////////////////////////////
 	///// This will be handled by a log-in page in the future
