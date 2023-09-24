@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/go-sql-driver/mysql"
+	"github.com/ptamarov/go-cards/app/card"
 	"github.com/ptamarov/go-cards/translate"
 )
 
@@ -246,7 +247,7 @@ func (m *SQLRepo) GenerateRandomCardData(db *sql.DB, getTranslation bool, authKe
 		log.Print("TRANSLATION:", translation)
 
 		// get the word to learn in target language (user language)
-		wordToLearn, err = translate.GetMarkedWordFromPrompt(translation)
+		wordToLearn, err = card.GetWordToLearnFromPrompt(translation)
 		log.Println("WORD_TO_LEARN:", wordToLearn)
 		if err != nil {
 			log.Println("error while fetching word to learn:", err)
