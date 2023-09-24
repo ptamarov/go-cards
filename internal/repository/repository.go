@@ -7,22 +7,23 @@ import (
 	"github.com/ptamarov/go-cards/app/algorithm"
 	"github.com/ptamarov/go-cards/app/card"
 	"github.com/ptamarov/go-cards/app/history"
-	"github.com/ptamarov/go-cards/app/judges"
 )
 
 type DatabaseRepository interface {
-	// GET ROUTINES
+	// RETRIEVE ROUTINES
 	GetCardByID(cardID uuid.UUID) (card.MemoryCard, error)
 	GetCardStatus(userID, deckID, cardID uuid.UUID) (algorithm.CardStatus, error)
 	GetCardToLearn(userID, deckID uuid.UUID) (card.MemoryCard, error)
 	GetAllActionsForDeck(userID, deckID uuid.UUID) ([]history.UserAction, error)
 	GetAllActionsForCard(userID, deckID, cardID uuid.UUID) ([]history.UserAction, error)
-	GetAnsweredCorrectlyFromTo(userID, deckID uuid.UUID, start, end time.Time, judge judges.Judge) (int, error)
-	GetAnsweredCorrectlyToday(userID, deckID uuid.UUID, j judges.Judge) (int, error)
+	GetAllActionsFromTo(userID, deckID uuid.UUID, start, end time.Time) ([]history.UserAction, error)
+	GetAllActionsForToday(userID, deckID uuid.UUID) ([]history.UserAction, error)
 	GetRedactedPromptFromCardID(cardID uuid.UUID) (string, error)
 	GetTimeSeen(userID, deckID, cardID uuid.UUID) (int, error)
 
-	// STATISTICS
+	// RETRIEVE STATISTICS
+	GetCountAllActionsForToday(userID, deckID uuid.UUID) (int, error)
+	GetCountAllActionsFromTo(userID, deckID uuid.UUID, start, end time.Time) (int, error)
 	GetCountCardsReady(userID, deckID uuid.UUID) (int, error)
 	GetCountCardsInProgress(userID, deckID uuid.UUID) (int, error)
 	GetCountCardsNotSeen(userID, deckID uuid.UUID) (int, error)

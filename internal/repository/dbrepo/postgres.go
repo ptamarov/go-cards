@@ -10,7 +10,6 @@ import (
 	"github.com/ptamarov/go-cards/app/algorithm"
 	"github.com/ptamarov/go-cards/app/card"
 	"github.com/ptamarov/go-cards/app/history"
-	"github.com/ptamarov/go-cards/app/judges"
 )
 
 const GO_DATE_FORMAT = "2006-01-02"
@@ -55,6 +54,45 @@ func (m *postgresDBRepo) GetRandomCardInDatabase() (card.MemoryCard, error) {
 	}
 
 	return newCard, nil
+}
+
+// Counts all user actions on a given deck from start to end dates (UTC)
+func (m *postgresDBRepo) GetCountAllActionsFromTo(userID, deckID uuid.UUID, start, end time.Time) (int, error) {
+	var count int
+	var err error
+
+	query := `
+	SELECT 	COUNT(*)
+	FROM 	history
+	WHERE 	user_id = $1
+	AND		deck_id = $2
+	AND	    created_at >= $3 
+	AND 	created_at < $4
+	`
+
+	s, e := start.Format(GO_DATE_FORMAT), end.Format(GO_DATE_FORMAT)
+	rows := m.DB.QueryRow(query, userID, deckID, s, e)
+
+	if err != nil {
+		m.App.ErrorLog.Println("while executing query", err)
+		return count, err
+	}
+
+	if err := rows.Scan(&count); err != nil {
+		m.App.ErrorLog.Println("while scanning count", err)
+		return count, err
+	}
+
+	return count, nil
+}
+
+// Counts all user actions on a given deck today (UTC time)
+func (m *postgresDBRepo) GetCountAllActionsForToday(userID, deckID uuid.UUID) (int, error) {
+	dateNowUTC := time.Now().UTC().Format("2006-01-02")
+	today, _ := time.Parse("2006-01-02", dateNowUTC)
+	oneDay := (24 * 60) * time.Minute
+	tomorrow := today.Add(oneDay)
+	return m.GetCountAllActionsFromTo(userID, deckID, today, tomorrow)
 }
 
 // GetCardByID gets a card from its ID with a redacted prompt.
@@ -179,17 +217,12 @@ func (m *postgresDBRepo) GetCountCardsReady(userID, deckID uuid.UUID) (int, erro
 	return count, nil
 }
 
-func (m *postgresDBRepo) GetAnsweredCorrectlyToday(userID, deckID uuid.UUID, j judges.Judge) (int, error) {
+func (m *postgresDBRepo) GetAllActionsForToday(userID, deckID uuid.UUID) ([]history.UserAction, error) {
 	dateNowUTC := time.Now().UTC().Format("2006-01-02")
 	today, _ := time.Parse("2006-01-02", dateNowUTC)
 	oneDay := (24 * 60) * time.Minute
 	tomorrow := today.Add(oneDay)
-
-	correct, err := m.GetAnsweredCorrectlyFromTo(userID, deckID, today, tomorrow, j)
-	if err != nil {
-		return correct, err
-	}
-	return correct, nil
+	return m.GetAllActionsFromTo(userID, deckID, today, tomorrow)
 }
 
 // UpdateCardStatus updates the status of a card for a userID and a deckID.
@@ -289,14 +322,12 @@ func (m *postgresDBRepo) GetRedactedPromptFromCardID(cardID uuid.UUID) (string, 
 	return redactedPrompt, nil
 }
 
-// GetNumberOfCardsAnsweredCorrectlyForDate gets the number of cards the user has
-// answered correctly within the given time interval.
-func (m *postgresDBRepo) GetAnsweredCorrectlyFromTo(userID, deckID uuid.UUID, start, end time.Time, judge judges.Judge) (int, error) {
+// Returns a slice with all the actions the user has performed within the datetime limits.
+func (m *postgresDBRepo) GetAllActionsFromTo(userID, deckID uuid.UUID, start, end time.Time) ([]history.UserAction, error) {
 	var actions []history.UserAction
-	var count int
 
 	query := `
-	SELECT 	user_id, deck_id, card_id, guess, duration
+	SELECT 	user_id, deck_id, card_id, guess, duration, drop_action
 	FROM 	history
 	WHERE 	user_id = $1
 	AND		deck_id = $2
@@ -309,7 +340,7 @@ func (m *postgresDBRepo) GetAnsweredCorrectlyFromTo(userID, deckID uuid.UUID, st
 
 	if err != nil {
 		m.App.ErrorLog.Println("while executing query", err)
-		return count, err
+		return actions, err
 	}
 
 	for rows.Next() {
@@ -319,29 +350,21 @@ func (m *postgresDBRepo) GetAnsweredCorrectlyFromTo(userID, deckID uuid.UUID, st
 			&action.CardID,
 			&action.Guess,
 			&action.Duration,
+			&action.Drop,
 		)
 		if err != nil {
 			m.App.ErrorLog.Println("while scanning next row", err)
-			return count, err
+			return actions, err
 		}
 		actions = append(actions, action)
 	}
 
 	if err := rows.Err(); err != nil {
 		m.App.ErrorLog.Println("while checking for error after iteration", err)
-		return count, err
+		return actions, err
 	}
 
-	for _, action := range actions {
-		card, err := m.GetCardByID(action.CardID)
-		if err != nil {
-			m.App.ErrorLog.Println("while fetching card to get guess", err)
-		}
-		if judge.EvaluateUserAction(card, action) == 1 {
-			count++
-		}
-	}
-	return count, nil
+	return actions, err
 }
 
 // GetTimesCardAnsweredInDeck gets the number of times the user has answered a given
@@ -357,10 +380,7 @@ func (m *postgresDBRepo) GetTimeSeen(userID, deckID, cardID uuid.UUID) (int, err
 	`
 	row := m.DB.QueryRow(query, userID, deckID, cardID)
 	err := row.Scan(&count)
-	if err != nil {
-		return count, err
-	}
-	return count, nil
+	return count, err
 }
 
 // GetAllActionsForDeck gets all actions with the input userID and deckID.

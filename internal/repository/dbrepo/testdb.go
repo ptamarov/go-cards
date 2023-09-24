@@ -35,7 +35,7 @@ func (m *testDBRepo) GetCountCardsReady(userID, deckID uuid.UUID) (int, error) {
 	return count, nil
 }
 
-func (m *testDBRepo) GetAnsweredCorrectlyToday(userID, deckID uuid.UUID, j judges.Judge) (int, error) {
+func (m *testDBRepo) GetCountAnsweredCorrectlyToday(userID, deckID uuid.UUID, j judges.Judge) (int, error) {
 	var correct int
 	return correct, nil
 }
@@ -59,7 +59,7 @@ func (m *testDBRepo) GetRedactedPromptFromCardID(cardID uuid.UUID) (string, erro
 
 // GetNumberOfCardsAnsweredCorrectlyForDate gets the number of cards the user has
 // answered correctly within the given time interval.
-func (m *testDBRepo) GetAnsweredCorrectlyFromTo(userID, deckID uuid.UUID, start, end time.Time, judge judges.Judge) (int, error) {
+func (m *testDBRepo) GetCountAnsweredCorrectlyFromTo(userID, deckID uuid.UUID, start, end time.Time, judge judges.Judge) (int, error) {
 	var count int
 	return count, nil
 }
@@ -94,4 +94,24 @@ func (m *testDBRepo) GetCountCardsInProgress(userID, deckID uuid.UUID) (int, err
 // RecordACtion records a user action in the database.
 func (m *testDBRepo) RecordAction(action history.UserAction) error {
 	return nil
+}
+
+func (m *testDBRepo) GetCountAllActionsForToday(userID, deckID uuid.UUID) (int, error) {
+	var count int
+	return count, nil
+}
+
+func (m *testDBRepo) GetCountAllActionsFromTo(userID, deckID uuid.UUID, s, e time.Time) (int, error) {
+	var count int
+	return count, nil
+}
+
+func (m *testDBRepo) GetAllActionsForToday(userID, deckID uuid.UUID) ([]history.UserAction, error) {
+	var actions []history.UserAction
+	return actions, nil
+}
+
+func (m *testDBRepo) GetAllActionsFromTo(userID, deckID uuid.UUID, start, end time.Time) ([]history.UserAction, error) {
+	var actions []history.UserAction
+	return actions, nil
 }
