@@ -211,28 +211,35 @@ func (m *Repository) ShowCard(w http.ResponseWriter, r *http.Request) {
 func (m *Repository) Home(w http.ResponseWriter, r *http.Request) {
 	userID, deckID := m.App.User.UserID, m.App.User.DeckID
 
+	var correct int
+	var err error
+	var count int
+
 	// get number of cards answered correctly today
-	correct, err := m.DB.GetAnsweredCorrectlyToday(userID, deckID, m.Algorithm.GetJudge())
+	correct, err = m.DB.GetAnsweredCorrectlyToday(userID, deckID, m.Algorithm.GetJudge())
 	if err != nil {
+		m.App.ErrorLog.Println("while counting card answered correctly", err)
 		helpers.ServerError(w, err)
 		return
 	}
 	m.App.User.CorrectToday = correct
 
-	count, err := m.DB.GetCountCardsReady(userID, deckID)
+	count, err = m.DB.GetCountCardsReady(userID, deckID)
 	if err != nil {
 		helpers.ServerError(w, err)
+		m.App.ErrorLog.Println("while counting cards that are ready", err)
 		return
 	}
 	td := models.TemplateData{}
 	err = m.PopulateTemplateWithCurrentStatistics(userID, deckID, &td)
 	if err != nil {
 		helpers.ServerError(w, err)
+		m.App.ErrorLog.Println("while populating the template with stats", err)
 		return
 	}
 	td.IntMap["cards_ready"] = count
 
-	renders.RenderTemplate(w, r, "home.page.tmpl", &td)
+	renders.RenderTemplate(w, r, "home.page.tmpl", &models.TemplateData{})
 }
 
 // ComeBackLater alerts the user that there no more cards to learn for the day.
