@@ -13,12 +13,12 @@ type User struct {
 	UserName         string
 	TargetLanguage   string
 	UserLang         string
-	CorrectToday     int
+	AnsweredToday    int
 	DailyGoal        int
 	DailyGoalReached bool
 }
 
 // IsDailyGoalReached checks if the user has reached the daily goal.
 func (u *User) IsDailyGoalReached() bool {
-	return u.CorrectToday >= u.DailyGoal
+	return u.AnsweredToday >= u.DailyGoal
 }

@@ -3,8 +3,8 @@ package user
 import "testing"
 
 func TestDailyGoal(t *testing.T) {
-	reached := User{DailyGoal: 50, CorrectToday: 50}
-	notReached := User{DailyGoal: 50, CorrectToday: 20}
+	reached := User{DailyGoal: 50, AnsweredToday: 50}
+	notReached := User{DailyGoal: 50, AnsweredToday: 20}
 
 	if !reached.IsDailyGoalReached() {
 		t.Error("expected daily goal reached but got false instead")
