@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"net/http"
 	"regexp"
-	"strings"
 )
 
 func GetTranslation(authKey string, inputText string, targetLanguage string) (string, error) {
@@ -53,46 +52,14 @@ func GetTranslation(authKey string, inputText string, targetLanguage string) (st
 	return response["translations"][0]["text"], nil
 }
 
-// BlanOutWordInSentence replaces all ocurrences of a word in a sentence by
-// a string of six underscores: ______.
+// Replaces all ocurrences of a word in a sentence by a string of six underscores: ______.
 func BlankOutWordInSentence(sentence string, word string) string {
-	re := regexp.MustCompile(fmt.Sprintf(`(?i)%s`, word))
+	re := regexp.MustCompile(fmt.Sprintf(`\b(?i)%s\b`, word))
 	return re.ReplaceAllString(sentence, "______")
 }
 
-func ProcessSentence(s string, word string) string {
-	re := regexp.MustCompile(fmt.Sprintf(`(?i)%s`, word))
-	return re.ReplaceAllString(s, "*"+word+"*")
-}
-
-// GetMarkedWordFromPrompt takes a sentence along with a unique
-// marked word using the delimiter "*" and returns the marked word.
-// "It is a *nice* day today" -> "nice".
-// Returns an error if there are not exactly two ocurrences of * in the sentence.
-func GetMarkedWordFromPrompt(sentence string) (string, error) {
-	var out string
-
-	count := strings.Count(sentence, "*")
-
-	switch count {
-	case 0:
-		return out, fmt.Errorf("bad input: no delimiters found")
-	case 1:
-		return out, fmt.Errorf("bad input: only one delimiter found")
-	case 2:
-		start, end := 0, 0
-		delimiter := "*"
-
-		for string(sentence[start]) != delimiter {
-			start++
-		}
-		end = start + 1
-		for string(sentence[end]) != delimiter {
-			end++
-		}
-		return sentence[start+1 : end], nil
-
-	default:
-		return out, fmt.Errorf("bad input: too many delimiters found")
-	}
+// Replaces all ocurrences of a word in a sentence by *word*.
+func ProcessSentence(sentence string, word string) string {
+	re := regexp.MustCompile(fmt.Sprintf(`\b(?i)%s\b`, word))
+	return re.ReplaceAllString(sentence, "*"+word+"*")
 }
