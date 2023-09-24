@@ -20,6 +20,7 @@ func TestGetWordToLearnFromPrompt(t *testing.T) {
 		{"Here is a *bad input", "", true},
 		{"Here is a *good* input", "good", false},
 		{"Here is more bad input", "", true},
+		{"Here are **too many** delimiters.", "", true},
 		{"Here is ** nothing.", "", false},
 	}
 
