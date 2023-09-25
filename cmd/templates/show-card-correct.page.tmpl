@@ -1,0 +1,106 @@
+{{ template "base" . }}
+{{ define "content" }}
+{{ $answer := index .StringMap "answer" }}
+   <div class="container p-3">
+        <div class="row">
+            <div class="col-md-3"></div>
+            <div class="col-md-6">
+                <div class="card" style="--bs-card-spacer-x: 2rem; --bs-card-spacer-y: 2rem">
+                    <div class="card-body" style="color: #067889"> {{ .CardData.Prompt }} </div>
+                    <div class="card-footer">
+                        <div class="accordion accordion-flush" id="translation">
+                            <div class="accordion-item">
+                                <h2 class="accordion-header" id="word_translation">
+                                    <button class="accordion-button collapsed sansSerif" 
+                                            type="button" 
+                                            data-bs-toggle="collapse" 
+                                            data-bs-target="#translationFlush" 
+                                            aria-expanded="false" 
+                                            aria-controls="translationFlush">
+                                        {{ .CardData.Hint }} ({{ .CardData.Grammar }})
+                                    </button>
+                                </h2>
+                                    <div id="translationFlush" 
+                                         class="accordion-collapse collapse sansSmall" 
+                                         aria-labelledby="translation" 
+                                         data-bs-parent="#translation">
+                                        <div class="accordion-body">
+                                           {{ .CardData.PromptTranslation}} 
+                                        </div>
+                                    </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+        <div class="container p-3">
+            <div class="row">
+                <div class="col-md-3"></div>
+                <div class="col-md-6">
+                    <div class ="card" >
+                        <div class="card-body" style="--bs-card-spacer-x: 0.25rem">
+                            <form method="post" 
+                                  action="/get-guess" 
+                                  autocomplete="off" 
+                                  class="needs-validation" 
+                                  novalidate>
+                            <input type="hidden" 
+                                   name="csrf_token" 
+                                   value='{{ index .StringMap "csrf_token" }}'>
+                                <div class="container">
+                                    <div class="row">
+                                        <div class="col-md-8 text-start">
+                                            <input type="text" 
+                                                   class="form-control" 
+                                                   style="color: #40b155; background-color: #d7f2dc"
+                                                   name="user_guess" 
+                                                   readonly 
+                                                   value='{{ index .StringMap "answer" }}'
+                                                   autofocus>
+                                        </div>
+                                        <div class="col-md-4 text-end">
+                                            <input type="submit" 
+                                                   class="btn btn-dark disabled" 
+                                                   value="Learn word">
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row"></div>
+                            </form>
+                        </div>
+                        <div class="card-footer">
+                            <div class="row justify-content-center">
+                                <div class="col-sm-1 sansSmall text-end p-0" style="width: 8%">
+                                {{ $goal := index .IntMap "daily_goal" }}
+                                {{ $percentageProgress := index .FloatMap "bar_progress_perc" }}
+                                {{ $barProgress := index .IntMap "correct_today" }}
+                                {{ $barProgress }}
+                                </div>
+                                <div class="col-md-10">
+                                    <div class="progress">
+                                        <div class='progress-bar bg-success w-{{ $barProgress }}' 
+                                            role="progressbar"  
+                                            aria-valuenow='{{ $barProgress }}'
+                                            aria-valuemin="0" 
+                                            aria-valuemax="{{ $goal }}"
+                                            style="width: {{ $percentageProgress }}%">
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-sm-1 sansSmall text-start p-0" style="width: 8%">
+                                {{ $goal }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+{{ end }}
+{{ define "js" }}
+    <script type="text/JavaScript">
+        setTimeout("location.href = 'http://localhost:8880/learn';",1500);
+    </script>
+{{ end }}

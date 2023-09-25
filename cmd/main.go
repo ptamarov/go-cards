@@ -79,7 +79,7 @@ func run() (*driver.DB, error) {
 
 	////// Mock a user ////////////////////////////////////////////////////////
 	///// This will be handled by a log-in page in the future
-	app.User = user.User{UserName: "test_user", DailyGoal: 50}
+	app.User = user.User{UserName: "test_user", DailyGoal: 10}
 
 	algo := algorithm.NewSM2(true, true)      // case and umlaut insensitive judge
 	repo := handlers.NewRepo(&app, db, &algo) // create a (pointer to a) repository variable

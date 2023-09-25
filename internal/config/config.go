@@ -16,6 +16,7 @@ type AppConfig struct {
 	TemplateCache    map[string]*template.Template
 	HomeDataCache    *models.TemplateData
 	SummaryDataCache *models.TemplateData
+	CorrectCache     *models.TemplateData
 	InfoLog          *log.Logger
 	ErrorLog         *log.Logger
 	Session          *scs.SessionManager

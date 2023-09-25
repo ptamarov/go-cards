@@ -161,14 +161,28 @@ func (m *Repository) GetGuess(w http.ResponseWriter, r *http.Request) {
 			helpers.ServerError(w, err)
 			return
 		} else {
+			td := models.TemplateData{CardData: m.App.User.CurrentCard}
+			td.StringMap = make(map[string]string)
+			td.StringMap["answer"] = Repo.App.User.CurrentCard.Answer
+			m.App.CorrectCache = &td
 			m.App.AlreadyAnswered = false
 			m.App.User.CurrentCard = newCard
 			m.App.User.LastAnswer = ""
-			http.Redirect(w, r, "/learn", http.StatusTemporaryRedirect)
+			http.Redirect(w, r, "/correct", http.StatusSeeOther)
 			return
 		}
 	}
+}
 
+func (m *Repository) ShowCorrectCard(w http.ResponseWriter, r *http.Request) {
+	td := m.App.CorrectCache
+	// progress and count always fetched from memory
+	td.IntMap = make(map[string]int)
+	td.FloatMap = make(map[string]float64)
+	td.IntMap["daily_goal"] = m.App.User.DailyGoal
+	td.IntMap["correct_today"] = m.App.User.AnsweredToday
+	td.FloatMap["bar_progress_perc"] = toPercentage(m.App.User.AnsweredToday, m.App.User.DailyGoal)
+	renders.RenderTemplate(w, r, "show-card-correct.page.tmpl", td)
 }
 
 // ShowCard shows the user a card and handles a post request from the user.
@@ -178,7 +192,7 @@ func (m *Repository) ShowCard(w http.ResponseWriter, r *http.Request) {
 	// 1. Check if daily goal is reached. If reached, redirect.
 	if m.App.User.IsDailyGoalReached() {
 		m.App.User.DailyGoalReached = true
-		http.Redirect(w, r, "/come-back-later", http.StatusSeeOther)
+		http.Redirect(w, r, "/summary", http.StatusSeeOther)
 		return
 	}
 
@@ -189,6 +203,7 @@ func (m *Repository) ShowCard(w http.ResponseWriter, r *http.Request) {
 		newCard, err := m.DB.GetCardToLearn(m.App.User.UserID, m.App.User.DeckID)
 		if err == sql.ErrNoRows {
 			http.Redirect(w, r, "/come-back-later", http.StatusSeeOther)
+			return
 		} else if err != nil {
 			helpers.ServerError(w, err)
 			return
@@ -205,12 +220,8 @@ func (m *Repository) ShowCard(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// progress and count always fetched from memory
-	if td.IntMap == nil {
-		td.IntMap = make(map[string]int)
-	}
-	if td.FloatMap == nil {
-		td.FloatMap = make(map[string]float64)
-	}
+	td.IntMap = make(map[string]int)
+	td.FloatMap = make(map[string]float64)
 	td.IntMap["daily_goal"] = m.App.User.DailyGoal
 	td.IntMap["correct_today"] = m.App.User.AnsweredToday
 	td.FloatMap["bar_progress_perc"] = toPercentage(m.App.User.AnsweredToday, m.App.User.DailyGoal)
@@ -302,6 +313,7 @@ func (m *Repository) GetAndPopulateTemplateWithCurrentStatisticsForHome(userID, 
 		m.App.ErrorLog.Println("while counting cards that are ready", err)
 		return err
 	}
+	m.App.InfoLog.Printf("counted %d cards ready.\n", countCardsReady)
 
 	// stats for homepage
 	inProgress, err := m.DB.GetCountCardsInProgress(userID, deckID)

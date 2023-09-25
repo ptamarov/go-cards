@@ -136,18 +136,19 @@ func (m *postgresDBRepo) GetCardByID(cardID uuid.UUID) (card.MemoryCard, error) 
 func (m *postgresDBRepo) GetCardToLearn(userID, deckID uuid.UUID) (card.MemoryCard, error) {
 	var newCard card.MemoryCard
 	var cardID uuid.UUID
+	timeNowUTC := time.Now().UTC().Format(GO_TIMESTAMP_FORMAT)
 	query := `
 	SELECT 		card_id
 	FROM 		decks
 	WHERE 		user_id = $1
 	AND 		deck_id = $2
-	AND			date_ready < CURRENT_TIMESTAMP -- Card is ready to be learned.
+	AND			date_ready < $3 -- Card is ready to be learned.
 	AND 		card_progress != 5			   -- Card is not learned.
 	AND 		card_progress != -1 		   -- Card is not inactive.
 	ORDER BY 	date_ready ASC
 	LIMIT(1)
 	`
-	row := m.DB.QueryRow(query, userID, deckID)
+	row := m.DB.QueryRow(query, userID, deckID, timeNowUTC)
 	err := row.Scan(&cardID)
 	if err != nil {
 		return newCard, err
