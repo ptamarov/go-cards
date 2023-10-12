@@ -23,7 +23,7 @@
         <div class="col-md-2 mx-auto">
             <div class="card" style="--bs-card-spacer-x: 2rem; --bs-card-spacer-y: 2rem">
                 <div class="card-body sansSmall" >
-                <h5 class="card-title sansMedium"> {{ index .IntMap  "session_cards_answered" }} </h5>
+                <h5 class="card-title sansMedium"> {{ .AnsweredToday }} </h5>
                     Cards answered
                 </div>
             </div>
@@ -31,7 +31,7 @@
         <div class="col-md-2 mx-auto">
             <div class="card" style="--bs-card-spacer-x: 2rem; --bs-card-spacer-y: 2rem">
                 <div class="card-body sansSmall" >
-                <h5 class="card-title sansMedium">{{ index .IntMap  "session_minutes" }}m {{ index .IntMap  "session_seconds" }}s</h5>
+                <h5 class="card-title sansMedium">{{ .Minutes }}m {{ .Seconds }}s</h5>
                         Total time spent 
                 </div>
             </div>
@@ -39,7 +39,7 @@
         <div class="col-md-2 mx-auto">
             <div class="card" style="--bs-card-spacer-x: 2rem; --bs-card-spacer-y: 2rem">
                 <div class="card-body sansSmall" >
-                <h5 class="card-title sansMedium">{{ index .FloatMap  "session_correct_rate" }}% </h5>
+                <h5 class="card-title sansMedium">{{ .CorrectRate }}% </h5>
                         Correct rate 
                 </div>
             </div>
