@@ -1,6 +1,5 @@
 {{ template "base" . }}
 {{ define "content" }}
-{{ $answer := index .StringMap "answer" }}
    <div class="container p-3">
         <div class="row">
             <div class="col-md-3"></div>
@@ -48,7 +47,7 @@
                                   novalidate>
                             <input type="hidden" 
                                    name="csrf_token" 
-                                   value='{{ index .StringMap "csrf_token" }}'>
+                                   value='{{ .CSRFToken }}'>
                                 <div class="container">
                                     <div class="row">
                                         <div class="col-md-8 text-start">
@@ -57,7 +56,7 @@
                                                    style="color: #40b155; background-color: #d7f2dc"
                                                    name="user_guess" 
                                                    readonly 
-                                                   value='{{ index .StringMap "answer" }}'
+                                                   value='{{ .Answer }}'
                                                    autofocus>
                                         </div>
                                         <div class="col-md-4 text-end">
@@ -73,9 +72,9 @@
                         <div class="card-footer">
                             <div class="row justify-content-center">
                                 <div class="col-sm-1 sansSmall text-end p-0" style="width: 8%">
-                                {{ $goal := index .IntMap "daily_goal" }}
-                                {{ $percentageProgress := index .FloatMap "bar_progress_perc" }}
-                                {{ $barProgress := index .IntMap "correct_today" }}
+                                {{ $goal := .DailyGoal }}
+                                {{ $percentageProgress := .BarProgressPerc }}
+                                {{ $barProgress := .AnsweredToday}}
                                 {{ $barProgress }}
                                 </div>
                                 <div class="col-md-10">

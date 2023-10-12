@@ -5,18 +5,10 @@
     <div class="row mx-auto">
         <div class="col-md-6 mx-auto">
             <div class="card" style="--bs-card-spacer-x: 2rem; --bs-card-spacer-y: 2rem">
-                <div class="card-body" >
+                <div class="card-body">
                 <h5 class="card-title sansMedium">Active word progress</h5>
                     <div class="row p-2 sansSmall text-center">
-                        {{ $inProgressPerc := index .FloatMap "in_progress_perc" }}
-                        {{ $learnedPerc := index .FloatMap "learned_perc" }}
-                        {{ $notSeenPerc := index .FloatMap "not_seen_perc" }}
-                        {{ $inProgress := index .IntMap "in_progress" }}
-                        {{ $learned := index .IntMap "learned" }}
-                        {{ $notSeen := index .IntMap "not_seen" }}
-                        {{ $readyCount := index .IntMap "cards_ready" }}
-                        {{ $size := index .IntMap "total" }}
-                        Progress: {{ $learnedPerc }}% of {{ $size }}  
+                        Progress: {{ .LearnedPerc }}% of {{ .Total }}  
                     </div>
                     <div class="row p-1 text-center">
                         
@@ -24,24 +16,24 @@
                         <div class="progress-bar bg-info" 
                             role="progressbar" 
                             aria-label="inProgress" 
-                            style="width: {{ $inProgressPerc }}%" 
-                            aria-valuenow="{{ $inProgress }}"
+                            style="width: {{ .InProgressPerc }}%" 
+                            aria-valuenow="{{ .InProgress }}"
                             aria-valuemin="0" 
-                            aria-valuemax="{{ $size }}"></div>
+                            aria-valuemax="{{ .Total }}"></div>
                         <div class="progress-bar bg-success" 
                             role="progressbar" 
                             aria-label="mastered" 
-                            style="width: {{ $learnedPerc }}%" 
-                            aria-valuenow="{{ $learned }}" 
+                            style="width: {{ .LearnedPerc }}%" 
+                            aria-valuenow="{{ .Learned }}" 
                             aria-valuemin="0" 
-                            aria-valuemax="{{ $size }}"></div>
+                            aria-valuemax="{{ .Total }}"></div>
                         <div class="progress-bar bg-warning" 
                             role="progressbar" 
                             aria-label="notSeen" 
-                            style="width: {{ $notSeenPerc }}%" 
-                            aria-valuenow="{{ $notSeen }}" 
+                            style="width: {{ .NotSeenPerc }}%" 
+                            aria-valuenow="{{ .NotSeen }}" 
                             aria-valuemin="0" 
-                            aria-valuemax="{{ $size }}"></div>
+                            aria-valuemax="{{ .Total }}"></div>
                         </div>
                     </div>
                 </div>
@@ -55,7 +47,7 @@
         <div class="col-md-2 mx-auto">
             <div class="card" style="--bs-card-spacer-x: 2rem; --bs-card-spacer-y: 2rem">
                 <div class="card-body sansSmall" >
-                <h5 class="card-title sansMedium"> {{ $size }} </h5>
+                <h5 class="card-title sansMedium"> {{ .Total }} </h5>
                     Total cards
                 </div>
             </div>
@@ -63,7 +55,7 @@
         <div class="col-md-2 mx-auto">
             <div class="card" style="--bs-card-spacer-x: 2rem; --bs-card-spacer-y: 2rem">
                 <div class="card-body sansSmall" >
-                <h5 class="card-title sansMedium">{{ $learned }} </h5>
+                <h5 class="card-title sansMedium">{{ .Learned }} </h5>
                         Cards learned
                 </div>
             </div>
@@ -71,7 +63,7 @@
         <div class="col-md-2 mx-auto">
             <div class="card" style="--bs-card-spacer-x: 2rem; --bs-card-spacer-y: 2rem">
                 <div class="card-body sansSmall" >
-                <h5 class="card-title sansMedium">{{ $readyCount }} </h5>
+                <h5 class="card-title sansMedium">{{ .CardsReady }} </h5>
                         Cards ready 
                 </div>
             </div>
@@ -86,17 +78,17 @@
                 <div class="card-body">
                 <h5 class="card-title sansMedium">Daily progress</h5>
                     <div class="row p-2 sansSmall text-center">
-                        Progress: {{ index .IntMap "answered_today" }} of {{ index .IntMap "daily_goal" }}   
+                        Progress: {{ .AnsweredToday }} of {{ .DailyGoal }}   
                     </div>
                     <div class="row p-1 text-center">
                         <div class="progress" style="padding-right: 0; padding-left: 0">
                             <div class="progress-bar bg-success" 
                                 role="progressbar" 
                                 aria-label="inProgress" 
-                                style='width: {{ index .FloatMap "bar_progress_perc" }}%'
-                                aria-valuenow='{{ index .IntMap "answered_today" }}'
+                                style='width: {{ .BarProgressPerc }}%'
+                                aria-valuenow='{{ .AnsweredToday }}'
                                 aria-valuemin="0" 
-                                aria-valuemax='{{ index .IntMap "daily_goal" }}'>
+                                aria-valuemax='{{ .DailyGoal }}'>
                             </div>
                         </div>
                     </div>

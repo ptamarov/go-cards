@@ -71,7 +71,7 @@ func run() (*driver.DB, error) {
 	////// Create template caches /////////////////////////////////////////////
 	tc, err := renders.CreateTemplateCache()
 	if err != nil {
-		app.ErrorLog.Fatal("cannot create template cache")
+		app.ErrorLog.Fatal("cannot create template cache", err)
 		return nil, err
 	}
 	app.TemplateCache = tc       // assign cache to the app configuration variable
@@ -79,7 +79,7 @@ func run() (*driver.DB, error) {
 
 	////// Mock a user ////////////////////////////////////////////////////////
 	///// This will be handled by a log-in page in the future
-	app.User = user.User{UserName: "test_user", DailyGoal: 10}
+	app.User = user.User{UserName: "test_user", DailyGoal: 100}
 
 	algo := algorithm.NewSM2(true, true)      // case and umlaut insensitive judge
 	repo := handlers.NewRepo(&app, db, &algo) // create a (pointer to a) repository variable

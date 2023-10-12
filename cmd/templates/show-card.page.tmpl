@@ -1,6 +1,5 @@
 {{ template "base" . }}
 {{ define "content" }}
-{{ $answer := index .StringMap "answer" }}
    <div class="container p-3">
         <div class="row">
             <div class="col-md-3"></div>
@@ -20,14 +19,14 @@
                                         {{ .CardData.Hint }} ({{ .CardData.Grammar }})
                                     </button>
                                 </h2>
-                                    <div id="translationFlush" 
-                                         class="accordion-collapse collapse sansSmall" 
-                                         aria-labelledby="translation" 
-                                         data-bs-parent="#translation">
-                                        <div class="accordion-body">
-                                           {{ .CardData.PromptTranslation}} 
-                                        </div>
+                                <div id="translationFlush" 
+                                        class="accordion-collapse collapse sansSmall" 
+                                        aria-labelledby="translation" 
+                                        data-bs-parent="#translation">
+                                    <div class="accordion-body">
+                                        {{ .CardData.PromptTranslation}} 
                                     </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -48,14 +47,14 @@
                                   novalidate>
                             <input type="hidden" 
                                    name="csrf_token" 
-                                   value='{{ index .StringMap "csrf_token" }}'>
+                                   value='{{ .CSRFToken }}'>
                                 <div class="container">
                                     <div class="row">
                                         <div class="col-md-8 text-start">
                                             <input type="text" 
                                                    class="form-control" 
                                                    name="user_guess" 
-                                                   placeholder='{{ index .StringMap "answer" }}'
+                                                   placeholder='{{ .Answer }}'
                                                    autofocus>
                                         </div>
                                         <div class="col-md-4 text-end">
@@ -71,24 +70,21 @@
                         <div class="card-footer">
                             <div class="row justify-content-center">
                                 <div class="col-sm-1 sansSmall text-end p-0" style="width: 8%">
-                                {{ $goal := index .IntMap "daily_goal" }}
-                                {{ $percentageProgress := index .FloatMap "bar_progress_perc" }}
-                                {{ $barProgress := index .IntMap "correct_today" }}
-                                {{ $barProgress }}
+                                {{ .AnsweredToday }}
                                 </div>
                                 <div class="col-md-10">
                                     <div class="progress">
-                                        <div class='progress-bar bg-success w-{{ $barProgress }}' 
+                                        <div class='progress-bar bg-success w-{{ .AnsweredToday }}' 
                                             role="progressbar"  
-                                            aria-valuenow='{{ $barProgress }}'
+                                            aria-valuenow='{{ .AnsweredToday }}'
                                             aria-valuemin="0" 
-                                            aria-valuemax="{{ $goal }}"
-                                            style="width: {{ $percentageProgress }}%">
+                                            aria-valuemax="{{ .DailyGoal }}"
+                                            style="width: {{ .BarProgressPerc }}%">
                                         </div>
                                     </div>
                                 </div>
                                 <div class="col-sm-1 sansSmall text-start p-0" style="width: 8%">
-                                {{ $goal }}
+                                {{ .DailyGoal }}
                                 </div>
                             </div>
                         </div>

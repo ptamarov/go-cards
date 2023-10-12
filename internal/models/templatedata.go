@@ -4,9 +4,26 @@ import "github.com/ptamarov/go-cards/app/card"
 
 // TemplateDate holds data sent from handlers to templates
 type TemplateData struct {
-	StringMap map[string]string
-	IntMap    map[string]int
-	FloatMap  map[string]float64
-	BoolMap   map[string]bool
-	CardData  card.MemoryCard
+	Answer    string
+	CSRFToken string
+
+	DailyGoal     int
+	AnsweredToday int
+	NotSeen       int
+	Learned       int
+	InProgress    int
+	Total         int
+	CardsReady    int
+	Minutes       int
+	Seconds       int
+
+	InProgressPerc  float64
+	BarProgressPerc float64
+	NotSeenPerc     float64
+	LearnedPerc     float64
+	CorrectRate     float64
+
+	DailyGoalReached bool
+
+	CardData card.MemoryCard
 }

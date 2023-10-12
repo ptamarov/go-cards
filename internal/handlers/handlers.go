@@ -162,8 +162,7 @@ func (m *Repository) GetGuess(w http.ResponseWriter, r *http.Request) {
 			return
 		} else {
 			td := models.TemplateData{CardData: m.App.User.CurrentCard}
-			td.StringMap = make(map[string]string)
-			td.StringMap["answer"] = Repo.App.User.CurrentCard.Answer
+			td.Answer = Repo.App.User.CurrentCard.Answer
 			m.App.CorrectCache = &td
 			m.App.AlreadyAnswered = false
 			m.App.User.CurrentCard = newCard
@@ -177,11 +176,9 @@ func (m *Repository) GetGuess(w http.ResponseWriter, r *http.Request) {
 func (m *Repository) ShowCorrectCard(w http.ResponseWriter, r *http.Request) {
 	td := m.App.CorrectCache
 	// progress and count always fetched from memory
-	td.IntMap = make(map[string]int)
-	td.FloatMap = make(map[string]float64)
-	td.IntMap["daily_goal"] = m.App.User.DailyGoal
-	td.IntMap["correct_today"] = m.App.User.AnsweredToday
-	td.FloatMap["bar_progress_perc"] = toPercentage(m.App.User.AnsweredToday, m.App.User.DailyGoal)
+	td.DailyGoal = m.App.User.DailyGoal
+	td.AnsweredToday = m.App.User.AnsweredToday
+	td.BarProgressPerc = toPercentage(m.App.User.AnsweredToday, m.App.User.DailyGoal)
 	renders.RenderTemplate(w, r, "show-card-correct.page.tmpl", td)
 }
 
@@ -213,18 +210,13 @@ func (m *Repository) ShowCard(w http.ResponseWriter, r *http.Request) {
 		}
 	} else {
 		td.CardData = m.App.User.CurrentCard // get template information from memory
-		if td.StringMap == nil {
-			td.StringMap = make(map[string]string)
-		}
-		td.StringMap["answer"] = Repo.App.User.LastAnswer
+		td.Answer = Repo.App.User.LastAnswer
 	}
 
 	// progress and count always fetched from memory
-	td.IntMap = make(map[string]int)
-	td.FloatMap = make(map[string]float64)
-	td.IntMap["daily_goal"] = m.App.User.DailyGoal
-	td.IntMap["correct_today"] = m.App.User.AnsweredToday
-	td.FloatMap["bar_progress_perc"] = toPercentage(m.App.User.AnsweredToday, m.App.User.DailyGoal)
+	td.DailyGoal = m.App.User.DailyGoal
+	td.AnsweredToday = m.App.User.AnsweredToday
+	td.BarProgressPerc = toPercentage(m.App.User.AnsweredToday, m.App.User.DailyGoal)
 
 	renders.RenderTemplate(w, r, "show-card.page.tmpl", &td)
 }
@@ -248,9 +240,7 @@ func (m *Repository) Home(w http.ResponseWriter, r *http.Request) {
 
 // ComeBackLater alerts the user that there no more cards to learn for the day.
 func (m *Repository) ComeBackLater(w http.ResponseWriter, r *http.Request) {
-	td := models.TemplateData{}
-	td.BoolMap = make(map[string]bool)
-	td.BoolMap["goal_reached"] = m.App.User.DailyGoalReached
+	td := models.TemplateData{DailyGoalReached: m.App.User.DailyGoalReached}
 	renders.RenderTemplate(w, r, "come-back-later.page.tmpl", &td)
 }
 
@@ -259,27 +249,8 @@ func (m *Repository) UpdateUserProgress() {
 	m.App.User.AnsweredToday++
 }
 
-// PopulateTemplateWithCurrentStatistics retrieves and populates a template with the following keys and information
-//
-// For IntMap:
-//   - answered_today: cards answered today
-//   - daily_goal: users daily goal
-//   - correct_today: cards answered correctly today
-//   - not_seen: cards not seen to date
-//   - learned: cards learned to date
-//   - in_progress: cards active but not learned
-//   - total: total cards in active deck
-//   - card_ready: card ready to be learned
-//   - daily_goal: the daily goal of the user
-//
-// For FloatMap:
-//   - not_seen_percentage: percentage of cards not seen.
-//   - learned_perc: percentage of cards learned.
-//   - in_progress_perc: percentage of cards in progress.
-//   - bar_progress_perc: percentage for the daily progress bar.
+// Retrieves and populates a template with statistics for the home page.
 func (m *Repository) GetAndPopulateTemplateWithCurrentStatisticsForHome(userID, deckID uuid.UUID, td *models.TemplateData) error {
-	td.IntMap = make(map[string]int)
-	td.FloatMap = make(map[string]float64)
 
 	// fetch all actions for the day
 	actions, err := m.DB.GetAllActionsForToday(m.App.User.UserID, m.App.User.DeckID)
@@ -331,27 +302,26 @@ func (m *Repository) GetAndPopulateTemplateWithCurrentStatisticsForHome(userID, 
 	notSeenPerC, progressPerC, learnedPerC := getStats(notSeen, inProgress, cardsLearned)
 
 	// populate IntMap
-	td.IntMap["not_seen"] = notSeen
-	td.IntMap["learned"] = cardsLearned
-	td.IntMap["in_progress"] = inProgress
-	td.IntMap["total"] = notSeen + cardsLearned + inProgress
-	td.IntMap["cards_ready"] = countCardsReady
-	td.IntMap["answered_today"] = countCorrect + countDrop
-	td.IntMap["daily_goal"] = m.App.User.DailyGoal
+	td.NotSeen = notSeen
+	td.Learned = cardsLearned
+	td.InProgress = inProgress
+	td.Total = notSeen + cardsLearned + inProgress
+	td.CardsReady = countCardsReady
+	td.AnsweredToday = countCorrect + countDrop
+	td.DailyGoal = m.App.User.DailyGoal
 
 	// populate FloatMap
-	td.FloatMap["bar_progress_perc"] = toPercentage(m.App.User.AnsweredToday, m.App.User.DailyGoal)
-	td.FloatMap["not_seen_perc"] = notSeenPerC
-	td.FloatMap["learned_perc"] = learnedPerC
-	td.FloatMap["in_progress_perc"] = progressPerC
+	td.BarProgressPerc = toPercentage(m.App.User.AnsweredToday, m.App.User.DailyGoal)
+	td.NotSeenPerc = notSeenPerC
+	td.LearnedPerc = learnedPerC
+	td.InProgressPerc = progressPerC
 
 	m.App.HomeDataCache = td
 	return nil
 }
 
+// Retrieves and populates a template with statistics for the statistics page.
 func (m *Repository) GetAndPopulateTemplateWithCurrentStatisticsForSummary(userID, deckID uuid.UUID, td *models.TemplateData) error {
-	td.IntMap = make(map[string]int)
-	td.FloatMap = make(map[string]float64)
 
 	actions, err := m.DB.GetAllActionsForToday(m.App.User.UserID, m.App.User.DeckID)
 	if err != nil {
@@ -387,11 +357,11 @@ func (m *Repository) GetAndPopulateTemplateWithCurrentStatisticsForSummary(userI
 	min := sec / 60
 	sec = sec - min*60
 
-	td.IntMap["session_minutes"] = min
-	td.IntMap["session_seconds"] = sec
-	td.IntMap["session_cards_answered"] = countDropped + countCorrect
+	td.Minutes = min
+	td.Seconds = sec
+	td.AnsweredToday = countDropped + countCorrect
 
-	td.FloatMap["session_correct_rate"] = toPercentage(countCorrect, countCorrect+countDropped)
+	td.CorrectRate = toPercentage(countCorrect, countCorrect+countDropped)
 
 	m.App.SummaryDataCache = td
 	return nil
