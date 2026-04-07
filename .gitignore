@@ -9,3 +9,4 @@ local-*
 Makefile
 *.out
 .env
+ANALYSIS.md
