@@ -16,7 +16,7 @@ func NewHelpers(a *config.AppConfig) {
 	app = a
 }
 
-// ServerError eplies to the request with the input http error status.
+// ServerError replies to the request with the input http error status.
 func ClientError(w http.ResponseWriter, status int) {
 	app.InfoLog.Println("Client error with status", status)
 	http.Error(w, http.StatusText(status), status)

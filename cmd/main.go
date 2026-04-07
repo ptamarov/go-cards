@@ -36,7 +36,7 @@ func main() {
 	// serving with multiplexer
 	srv := &http.Server{
 		Addr:    portNumber,
-		Handler: routes(&app),
+		Handler: routes(),
 	}
 
 	err = srv.ListenAndServe()
