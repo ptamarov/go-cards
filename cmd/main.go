@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/alexedwards/scs/v2"
+	"github.com/joho/godotenv"
 	"github.com/ptamarov/go-cards/app/algorithm"
 	"github.com/ptamarov/go-cards/app/card"
 	"github.com/ptamarov/go-cards/app/user"
@@ -47,6 +48,9 @@ func run() (*driver.DB, error) {
 	gob.Register(card.MemoryCard{}) // tell app about more complex types to be stored in session
 	app.InProduction = false        // change this to true when in production
 
+	////// Load environment variables //////////////////////////////////////////
+	_ = godotenv.Load() // load from .env file if it exists (not fatal if missing)
+
 	////// Set up logging /////////////////////////////////////////////////////
 	app.InfoLog = log.New(os.Stdout, "INFO\t", log.Ldate|log.Ltime)
 	app.ErrorLog = log.New(os.Stdout, "ERROR\t", log.Ldate|log.Ltime|log.Lshortfile)
@@ -62,7 +66,11 @@ func run() (*driver.DB, error) {
 
 	////// Connect to database ////////////////////////////////////////////////
 	app.InfoLog.Println("connecting to database...")
-	db, err := driver.ConnectSQL("host=localhost port=5432 dbname=go_cards user=ptamarov password=")
+	databaseURL := os.Getenv("DATABASE_URL")
+	if databaseURL == "" {
+		databaseURL = "host=localhost port=5432 dbname=go_cards user=postgres password="
+	}
+	db, err := driver.ConnectSQL(databaseURL)
 	if err != nil {
 		log.Fatal("while connecting to database:", err)
 	}
